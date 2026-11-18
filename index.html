@@ -30,6 +30,7 @@ button{font:inherit;color:inherit}
 .top .mid b{font:400 16px "Alfa Slab One",serif;letter-spacing:.5px}
 
 main{max-width:560px;margin:0 auto;padding:18px 14px 40px}
+main.wide{max-width:940px}
 .card{background:var(--paper);border:2px solid var(--ink);box-shadow:5px 5px 0 var(--ink);position:relative}
 .cap{display:flex;justify-content:space-between;align-items:center;padding:7px 10px;border-bottom:2px solid var(--ink);font-size:10.5px;letter-spacing:2px;text-transform:uppercase;background:var(--paper2)}
 .cap b{font-weight:500}
@@ -212,7 +213,7 @@ const dayKey='tp-day-'+num;
 /* ---------- state ---------- */
 let mode='daily',answer=dailyAnswer,guesses=[],cur='',states=null,course=null,strokes=0,inked=0,ball=null,lastRest=null,broken=[false,false,false,false,false],done=false,sunk=false;
 function save(){if(mode!=='daily')return;store.set(dayKey,{guesses,strokes,inked,ball,lastRest,broken,done,sunk,stage:states?'hole':'word'})}
-function show(id){['home','word','hole'].forEach(s=>$(s).hidden=s!==id);$('modal').hidden=true;$('topNum').textContent=mode==='practice'&&id!=='home'?'PRACTICE':DAYTXT;scrollTo(0,0);if(id==='hole')fit()}
+function show(id){['home','word','hole'].forEach(s=>$(s).hidden=s!==id);document.querySelector('main').classList.toggle('wide',id==='hole');$('modal').hidden=true;$('topNum').textContent=mode==='practice'&&id!=='home'?'PRACTICE':DAYTXT;scrollTo(0,0);if(id==='hole')fit()}
 
 /* ---------- home ---------- */
 function home(){
