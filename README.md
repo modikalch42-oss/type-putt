@@ -8,7 +8,7 @@ The daily word hole. Guess today's five-letter word in 3 tries, then putt a golf
    - letters you found in the wrong spot are **brittle** and shatter after one hit;
    - letters you missed are **dashed outlines**, and the ball falls straight through them.
 
-   A better word gives you more to stand on and bank off. Par is 2 if you set every letter, 3 with three or four, 4 with one or two, and 5 with none.
+   The line is **locked up like real type**: wooden spacer posts stand between the letters, and a brass rule runs just above them. So you putt *along* the word rather than lobbing over it, and every letter's shape matters: A's peak, U's dip, the notch where two letters meet. Letter 2 is the first ground you cross. A better word gives you more to stand on and bank off. Every daily word is checked: with every letter missed the best route is 4 strokes (hopping post to post), and with every letter set it's 1–2. Par is 2 if you set every letter, 3 with three or four, 4 with one or two, and 5 with none.
 3. **Putt.** Drag back anywhere to aim (a dotted line previews the shot), then let go. The tee box sits on top of the first letter. The cup sits in the last letter, at the bottom of its centre column (inside the loop of an O, at the foot of an L), with a shaft cut above it. Falling in the ink is +1 stroke and puts you back at your last spot. You pick up at 10.
 
 **Share text:** `Type-Putt #1 | Word: 🟩🟨⬛🟩🟩 | Hole: 3 Strokes (Par 3) ⛳`
@@ -20,5 +20,5 @@ The daily word hole. Guess today's five-letter word in 3 tries, then putt a golf
 - `putt.js`: the 5×7 wood-type face, course building and the ball physics. It uses only arithmetic and square roots, so shots behave identically everywhere, including in the checker.
 - `words.js`: generated. It holds the daily answers in a fixed shuffled order, plus every five-letter word accepted as a guess.
 - `tools/answers.txt`: hand-picked daily answers. `tools/allowed.txt`: five-letter words from the MIT-licensed [`word-list`](https://github.com/sindresorhus/word-list) package (licence in `tools/allowed-LICENSE.txt`).
-- `tools/check.js`: for every answer, checks that the hole can be sunk both with every letter missed and with every letter solid, by scanning shot angles and powers.
+- `tools/check.js`: for every answer, searches stroke-by-stroke routes and checks that the hole can be finished both with every letter missed and with every letter solid, reporting the fewest strokes found.
 - `tools/build-words.js`: rebuilds `words.js`, optionally dropping words that failed the check. Usage: `node tools/check.js tools/answers.txt 9999 bad.json` then `node tools/build-words.js bad.json`.

@@ -267,8 +267,9 @@ function finishWord(){
 /* ---------- hole ---------- */
 const cv=$('course'),ctx=cv.getContext('2d');
 let scale=1,dpr=1,paperC=null,stainC=null,sim=null,acc=0,lastT=0,aim=null,particles=[],wob=[0,0,0,0,0],slamT=0,flagT=0,lastTick=-1;
+const VT=P.CEIL_Y-34;   // the view starts just above the brass rule: nothing above it is reachable
 function fit(){const w=Math.min($('hole').clientWidth||innerWidth-28,900);dpr=Math.min(2,devicePixelRatio||1);scale=(w-4)/P.W;
-  cv.width=Math.round(P.W*scale*dpr);cv.height=Math.round(P.H*scale*dpr);cv.style.height=Math.round(P.H*scale)+'px'}
+  cv.width=Math.round(P.W*scale*dpr);cv.height=Math.round((P.H-VT)*scale*dpr);cv.style.height=Math.round((P.H-VT)*scale)+'px'}
 addEventListener('resize',()=>{if(!$('hole').hidden)fit()});
 function makePaper(){
   paperC=document.createElement('canvas');paperC.width=P.W*2;paperC.height=P.H*2;const x=paperC.getContext('2d');x.scale(2,2);
@@ -333,8 +334,13 @@ function tick(t){
 /* ---------- drawing ---------- */
 function letterBox(li){const x=P.letterX(li);return [x,P.TOP,5*P.B,7*P.B]}
 function draw(t){
-  const k=scale*dpr;ctx.setTransform(k,0,0,k,0,0);ctx.clearRect(0,0,P.W,P.H);
+  const k=scale*dpr;ctx.setTransform(k,0,0,k,0,-VT*k);ctx.clearRect(0,VT,P.W,P.H-VT);
   ctx.drawImage(paperC,0,0,P.W,P.H);ctx.drawImage(stainC,0,0,P.W,P.H);
+  // the brass composing rule across the top (solid): shots bounce off it instead of lobbing over the word
+  ctx.fillStyle='#1d1a1612';ctx.fillRect(0,0,P.W,P.CEIL_Y-9);
+  ctx.fillStyle='#8a6a2e';ctx.fillRect(0,P.CEIL_Y-9,P.W,11);ctx.fillStyle='#c9a35a';ctx.fillRect(0,P.CEIL_Y-9,P.W,8);ctx.fillStyle='#ecd09a';ctx.fillRect(0,P.CEIL_Y-8,P.W,2);
+  ctx.fillStyle='#6e5426';for(let x=30;x<P.W;x+=60)ctx.fillRect(x,P.CEIL_Y-6,2,2);
+  ctx.fillStyle='#6f6658';ctx.font='500 9px "DM Mono",monospace';ctx.fillText('BRASS RULE · THE BALL BOUNCES OFF IT',8,P.CEIL_Y-16);
   // ink pit
   ctx.fillStyle=INK;ctx.beginPath();ctx.moveTo(0,P.H);for(let x=0;x<=P.W;x+=10)ctx.lineTo(x,P.PIT_Y-6+Math.sin(x/28+t/600)*3);ctx.lineTo(P.W,P.H);ctx.fill();
   ctx.fillStyle='#ffffff18';for(let x=8;x<P.W;x+=46)ctx.fillRect(x+Math.sin(t/900+x)*6,P.PIT_Y+12,16,2);
@@ -362,7 +368,9 @@ function draw(t){
     ctx.restore();
   }
   // tee box and cup pads (always solid)
-  for(const b of course.blocks)if(b.pad){ctx.fillStyle='#5b574f';ctx.fillRect(b.x+3,b.y+3,B,B);ctx.fillStyle='#8f8a80';ctx.fillRect(b.x,b.y,B,B);ctx.fillStyle='#5b574f';[[4,4],[B-6,4],[4,B-6],[B-6,B-6]].forEach(([u,v])=>ctx.fillRect(b.x+u,b.y+v,2,2))}
+  for(const b of course.blocks)if(b.post){ctx.fillStyle=WOODD;ctx.fillRect(b.x+3,b.y+3,B,B)}
+  for(const b of course.blocks)if(b.post){ctx.fillStyle='#e2b77c';ctx.fillRect(b.x,b.y,B,B);ctx.fillStyle='#b98547';ctx.fillRect(b.x+5,b.y,1.5,B);ctx.fillRect(b.x+13,b.y,1,B)}
+  for(const b of course.blocks)if(b.pad&&!b.post){ctx.fillStyle='#5b574f';ctx.fillRect(b.x+3,b.y+3,B,B);ctx.fillStyle='#8f8a80';ctx.fillRect(b.x,b.y,B,B);ctx.fillStyle='#5b574f';[[4,4],[B-6,4],[4,B-6],[B-6,B-6]].forEach(([u,v])=>ctx.fillRect(b.x+u,b.y+v,2,2))}
   // cup + flag
   const c=course.cup,fl=flagT?Math.min(1,(t-flagT)/600):0;
   ctx.fillStyle=INK;ctx.beginPath();ctx.ellipse(c.x+B/2,c.y+B-1,B/2-1,3,0,0,7);ctx.fill();
@@ -429,7 +437,7 @@ function howTo(){
   const m=$('modal');
   m.innerHTML=`<div class="card mcard"><div class="cap"><span>HOW TO PLAY</span><b>README</b></div><div class="mb"><h2>Guess it. Putt it.</h2>
   <ol class="steps"><li><span><b>Guess today's five-letter word</b> in 3 tries. Each guess colours its letters: <i class="sw" style="background:var(--green)"></i> right spot, <i class="sw" style="background:var(--ochre)"></i> wrong spot, <i class="sw" style="background:var(--grey)"></i> not in the word.</span></li>
-  <li><span>The word becomes <b>a mini-golf hole over an ink pit</b>. Letters you got in the right spot are <b>solid type</b>. Letters you found in the wrong spot are <b>brittle</b> and break after one hit. Letters you missed are <b>outlines</b>, and the ball falls straight through.</span></li>
+  <li><span>The word becomes <b>a mini-golf hole over an ink pit</b>, locked up like real type: wooden spacers stand between the letters and a <b>brass rule</b> runs just above them, so you putt <i>along</i> the word, not over it. Letters you got in the right spot are <b>solid type</b>. Letters you found in the wrong spot are <b>brittle</b> and break after one hit. Letters you missed are <b>outlines</b>, and the ball falls straight through.</span></li>
   <li><span><b>Drag back anywhere to aim</b>, let go to putt. Get from the tee box on the first letter into the cup in the last one.</span></li>
   <li><span>Fall in the ink and it's <b>+1 stroke</b>, back to your last spot. Par depends on how many letters you set. One hole a day.</span></li></ol>
   <button class="cta" id="mclose">LET'S PUTT</button></div></div>`;

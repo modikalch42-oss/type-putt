@@ -4,12 +4,15 @@
    The course is the day's word set in big 5x7 "wood type" blocks standing over an ink pit.
    Letter states come from the word game:  solid (found in place) · brittle (found, wrong spot:
    breaks after one hit) · wire (missed: the ball passes straight through).
+   The line is locked up like real type: wooden spacer posts stand between the letters and a brass
+   rule runs across the top, so the letters are the ground you putt along, not scenery to lob over.
    The tee sits on a tee box on top of the first letter. The cup sits in the last letter at the
    bottom of its centre column (inside the loop of an O, at the foot of an L), with a shaft cut
    above it so it can always be reached from the sky. */
 (function (root) {
   const B = 20, COLS = 31, W = 620, H = 400, TOP = 170;           // block size, world size, letter top
-  const R = 6, G = 900, DT = 1 / 240, MAX_V = 760, MAX_STEPS = 240 * 14;
+  const R = 6, G = 900, DT = 1 / 240, MAX_V = 540, MAX_STEPS = 240 * 14;
+  const CEIL_Y = TOP - 36;                                          // the brass rule across the top: no lobbing over the word
   const PIT_Y = TOP + 7 * B + 30;                                    // fall below this = inked
   const FONT = {
     A: ['.###.', '#...#', '#...#', '#####', '#...#', '#...#', '##.##'],
@@ -70,6 +73,12 @@
         blocks.push(b); grid.set(b.c + ',' + r, b);
       }
       const cx = (c0 + 2) * B + B / 2, cy = TOP + seatRow * B;       // top-left y of the seat cell
+      // wooden spacer posts lock the line up: one full-height post either side of every letter
+      for (const pc of li === 4 ? [c0 - 1, c0 + 5] : [c0 - 1]) for (let r = 0; r < 7; r++) {
+        if (grid.has(pc + ',' + r)) continue;
+        const b = { c: pc, r, x: pc * B, y: TOP + r * B, li: -1, pad: true, post: true };
+        blocks.push(b); grid.set(pc + ',' + r, b);
+      }
       if (li === 0) tee = { x: cx, y: cy + B - R - .01, col: c0 + 2, row: seatRow };
       if (li === 4) cup = { x: (c0 + 2) * B, y: cy, col: c0 + 2, row: seatRow };
     }
@@ -95,6 +104,7 @@
     s.vy += G * DT; s.x += s.vx * DT; s.y += s.vy * DT;
     if (s.x < R) { s.x = R; if (s.vx < 0) s.vx = -s.vx * .5; }
     if (s.x > W - R) { s.x = W - R; if (s.vx > 0) s.vx = -s.vx * .5; }
+    if (s.y < CEIL_Y + R) { s.y = CEIL_Y + R; if (s.vy < 0) { if (-s.vy > 60) s.hits.push({ li: -2, v: -s.vy, x: s.x, y: CEIL_Y, pad: true }); s.vy = -s.vy * .42; } }
     let touching = false;
     const c0 = Math.floor((s.x - R) / B), c1 = Math.floor((s.x + R) / B), r0 = Math.floor((s.y - R - TOP) / B), r1 = Math.floor((s.y + R - TOP) / B);
     for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) {
@@ -138,6 +148,6 @@
     return { res: s.done, x: s.x, y: s.y, broken: s.broken, path, steps: s.n };
   }
 
-  const api = { B, COLS, W, H, TOP, R, G, DT, MAX_V, PIT_Y, FONT, letterX, seat, buildCourse, solidAt, start, step, shoot };
+  const api = { B, COLS, W, H, TOP, R, G, DT, MAX_V, PIT_Y, CEIL_Y, FONT, letterX, seat, buildCourse, solidAt, start, step, shoot };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Putt = api;
 })(this);
