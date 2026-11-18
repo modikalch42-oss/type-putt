@@ -1,0 +1,471 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cut">
+<title>Type-Putt · the daily word hole</title>
+<meta name="description" content="Guess the word, then putt across it. A daily word game and mini-golf hole in one.">
+<meta name="theme-color" content="#f3ead6">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Crect width='8' height='8' fill='%23f3ead6'/%3E%3Crect x='2' y='1' width='1' height='6' fill='%231d1a16'/%3E%3Crect x='3' y='1' width='3' height='2' fill='%23d9412b'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#f3ead6;--paper2:#e8dabd;--ink:#1d1a16;--wood:#c98b4f;--woodd:#8a5a2b;--green:#2e7d4f;--ochre:#e3a72f;--red:#d9412b;--blue:#3a63d8;--mute:#6f6658;--grey:#b9ae99}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{color:var(--ink);font:14px/1.45 "DM Mono",ui-monospace,monospace;-webkit-tap-highlight-color:transparent;overscroll-behavior:none;
+  background-color:var(--paper);
+  background-image:linear-gradient(#3a63d80f 1px,transparent 1px),linear-gradient(90deg,#3a63d80f 1px,transparent 1px),url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .35 0 0 0 0 .27 0 0 0 0 .16 0 0 0 .13 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size:24px 24px,24px 24px,160px 160px}
+button{font:inherit;color:inherit}
+[hidden]{display:none!important}
+.slab{font-family:"Alfa Slab One",Georgia,serif;font-weight:400}
+
+/* top bar */
+.top{position:sticky;top:0;z-index:30;display:flex;height:48px;background:var(--paper);border-bottom:2px solid var(--ink)}
+.sq{width:50px;flex:none;border:0;background:none;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center}
+.sq:first-child{border-right:2px solid var(--ink)}.sq:last-child{border-left:2px solid var(--ink)}
+.sq:hover{background:var(--paper2)}
+.top .mid{flex:1;display:flex;align-items:center;justify-content:center;gap:10px;font-size:11px;letter-spacing:2px;text-transform:uppercase;white-space:nowrap;overflow:hidden}
+.top .mid b{font:400 16px "Alfa Slab One",serif;letter-spacing:.5px}
+
+main{max-width:560px;margin:0 auto;padding:18px 14px 40px}
+.card{background:var(--paper);border:2px solid var(--ink);box-shadow:5px 5px 0 var(--ink);position:relative}
+.cap{display:flex;justify-content:space-between;align-items:center;padding:7px 10px;border-bottom:2px solid var(--ink);font-size:10.5px;letter-spacing:2px;text-transform:uppercase;background:var(--paper2)}
+.cap b{font-weight:500}
+
+/* home */
+.hero{text-align:center;padding:26px 16px 22px}
+.kicker{font-size:10.5px;letter-spacing:3px;color:var(--mute);text-transform:uppercase}
+.logo{margin:12px 0 4px;font:400 clamp(44px,13vw,70px)/.9 "Alfa Slab One",serif;letter-spacing:1px;color:var(--ink);
+  text-shadow:1px 1px 0 var(--wood),2px 2px 0 var(--wood),3px 3px 0 var(--wood),4px 4px 0 var(--wood),5px 5px 0 var(--woodd),6px 6px 0 var(--woodd)}
+.logo span{color:var(--red)}
+.rule{display:flex;align-items:center;gap:10px;margin:16px 0 10px;font-size:10.5px;letter-spacing:3px;color:var(--green);text-transform:uppercase}
+.rule::before,.rule::after{content:"";flex:1;border-top:2px solid var(--green)}
+.tag{margin:0;font-size:13px}
+.today{margin-top:22px;padding:14px}
+.trow{display:flex;justify-content:space-between;align-items:center;font-size:10.5px;letter-spacing:2px;text-transform:uppercase}
+.lnk{border:0;background:none;padding:0;border-bottom:2px solid var(--ink);cursor:pointer;font-size:10.5px;letter-spacing:2px}
+.blanks{display:flex;gap:6px;justify-content:center;margin:14px 0}
+.blanks i{width:44px;height:52px;border:2px dashed var(--blue);display:flex;align-items:center;justify-content:center;font:400 22px "Alfa Slab One",serif;font-style:normal;color:var(--blue)}
+.cta{width:100%;border:2px solid var(--ink);background:var(--ink);color:var(--paper);padding:14px 10px;font:400 19px "Alfa Slab One",serif;letter-spacing:1.5px;cursor:pointer;box-shadow:inset 0 0 0 2px var(--paper)}
+.cta:hover{background:#2d2924}.cta:active{transform:translate(2px,2px)}
+.fine{text-align:center;font-size:10px;letter-spacing:1.6px;color:var(--mute);margin-top:10px;text-transform:uppercase;display:flex;justify-content:center;gap:14px;flex-wrap:wrap}
+.fine b{color:var(--ink)}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:12px}
+.ghost{border:2px solid var(--ink);background:var(--paper);padding:10px 4px;font-size:10px;letter-spacing:1.4px;text-transform:uppercase;cursor:pointer;box-shadow:3px 3px 0 var(--ink)}
+.ghost:hover{background:var(--paper2)}.ghost:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--ink)}
+
+/* word stage */
+.sub{text-align:center;font-size:10.5px;letter-spacing:2px;text-transform:uppercase;color:var(--mute);margin:2px 0 12px}
+.grid{display:flex;flex-direction:column;gap:7px;align-items:center;padding:16px 10px 12px}
+.grow{display:flex;gap:7px}
+.grow.shake{animation:shake .4s}
+@keyframes shake{20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+.tile{width:56px;height:62px;border:2px dashed #3a63d866;display:flex;align-items:center;justify-content:center;font:400 30px "Alfa Slab One",serif;text-transform:uppercase;position:relative;perspective:300px}
+.tile.typed{border:2px solid var(--ink);background:#fbf5e8;box-shadow:0 4px 0 var(--wood),0 4px 0 2px var(--ink);animation:pop .12s}
+@keyframes pop{50%{transform:scale(1.08)}}
+.tile.g,.tile.y,.tile.b{border:2px solid var(--ink);color:var(--paper);animation:flip .45s ease both}
+.tile.g{background:var(--green);box-shadow:0 4px 0 #1d5235,0 4px 0 2px var(--ink)}
+.tile.y{background:var(--ochre);color:var(--ink);box-shadow:0 4px 0 #a0731c,0 4px 0 2px var(--ink)}
+.tile.b{background:var(--grey);color:#fffaf0;box-shadow:0 4px 0 #8f8574,0 4px 0 2px var(--ink)}
+@keyframes flip{0%{transform:rotateX(0)}50%{transform:rotateX(90deg)}100%{transform:rotateX(0)}}
+.msg{min-height:24px;text-align:center;margin:2px 0 8px}
+.msg span{display:inline-block;background:var(--ink);color:var(--paper);padding:3px 10px;font-size:11px;letter-spacing:1.5px;text-transform:uppercase}
+.kb{display:flex;flex-direction:column;gap:6px;user-select:none;-webkit-user-select:none}
+.kr{display:flex;gap:5px;justify-content:center}
+.k{flex:1;max-width:44px;height:52px;border:2px solid var(--ink);background:#fbf5e8;font:400 17px "Alfa Slab One",serif;text-transform:uppercase;cursor:pointer;box-shadow:0 3px 0 var(--wood),0 3px 0 2px var(--ink);padding:0;touch-action:manipulation}
+.k:active{transform:translateY(2px);box-shadow:0 1px 0 var(--wood),0 1px 0 2px var(--ink)}
+.k.wide{max-width:70px;flex:1.5;font:500 11px "DM Mono",monospace;letter-spacing:1px}
+.k.g{background:var(--green);color:var(--paper)}.k.y{background:var(--ochre)}.k.b{background:var(--grey);color:#fffaf0}
+.reveal{text-align:center;padding:4px 0 6px}
+.reveal .ans{display:flex;gap:6px;justify-content:center;margin:8px 0 10px}
+.legend{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;font-size:10px;letter-spacing:1px;text-transform:uppercase;margin:4px 0 12px}
+.legend i{display:inline-block;width:12px;height:12px;border:2px solid var(--ink);vertical-align:-2px;margin-right:5px}
+
+/* hole stage */
+.hud{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 10px;border-bottom:2px solid var(--ink);background:var(--paper2)}
+.hud .st{font-size:11px;letter-spacing:1.5px;text-transform:uppercase}
+.hud .st b{font:400 20px "Alfa Slab One",serif;margin:0 3px;vertical-align:-2px}
+.mini{display:flex;gap:3px}
+.mini i{width:20px;height:22px;border:2px solid var(--ink);font:400 11px/18px "Alfa Slab One",serif;font-style:normal;text-align:center;text-transform:uppercase}
+.mini .solid{background:var(--ink);color:var(--paper)}.mini .brittle{background:var(--ochre)}.mini .wire{border-style:dashed;border-color:var(--blue);color:var(--blue);background:transparent}
+#course{display:block;width:100%;touch-action:none;cursor:crosshair}
+.hint{text-align:center;font-size:10.5px;letter-spacing:1.5px;text-transform:uppercase;color:var(--mute);margin:10px 0 0}
+.hstatus{min-height:26px;text-align:center;margin-top:8px}
+.hstatus span{display:inline-block;background:var(--ink);color:var(--paper);padding:3px 10px;font-size:11px;letter-spacing:1.5px;text-transform:uppercase}
+.hstatus span.good{background:var(--green)}.hstatus span.bad{background:var(--red)}
+
+/* modal */
+#modal{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:16px;background:#1d1a1699}
+.mcard{width:min(390px,100%);max-height:calc(100vh - 32px);overflow:auto;animation:rise .3s cubic-bezier(.3,1.5,.5,1)}
+@keyframes rise{from{transform:translateY(14px);opacity:0}}
+.mb{padding:16px}
+.mb h2{margin:4px 0 8px;font:400 30px/1 "Alfa Slab One",serif}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);border:2px solid var(--ink);margin:12px 0}
+.stats.four{grid-template-columns:repeat(4,1fr)}
+.stats div{padding:8px 4px;text-align:center;border-left:2px solid var(--ink)}.stats div:first-child{border-left:0}
+.stats b{display:block;font:400 22px/1.1 "Alfa Slab One",serif}
+.stats small{font-size:8.5px;letter-spacing:1.2px;color:var(--mute);text-transform:uppercase}
+.share{background:#fffaf0;border:2px dashed var(--ink);padding:9px 10px;font-size:12px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
+.mrow{display:grid;grid-template-columns:1.3fr 1fr;gap:10px;margin-top:12px}
+.mrow .cta{font-size:15px;padding:11px 6px}
+.nextp{text-align:center;margin-top:12px;font-size:10px;letter-spacing:2px;color:var(--mute);text-transform:uppercase}
+.nextp b{font:400 17px "Alfa Slab One",serif;letter-spacing:1px;color:var(--ink)}
+.mlinks{display:flex;justify-content:center;gap:18px;margin-top:12px}
+.mlinks a{font-size:10.5px;letter-spacing:1.5px;border-bottom:2px solid var(--ink);cursor:pointer;text-transform:uppercase}
+.hist{margin:8px 0 12px;display:flex;flex-direction:column;gap:4px}
+.hrow{display:flex;align-items:center;gap:6px;font-size:10px}
+.hrow span{width:74px;text-align:right;text-transform:uppercase;letter-spacing:1px}
+.hrow i{font-style:normal;background:var(--paper2);border:2px solid var(--ink);padding:0 5px;text-align:right}
+.hrow i.me{background:var(--green);color:var(--paper)}
+.steps{margin:6px 0 0;padding:0;list-style:none;counter-reset:s}
+.steps li{counter-increment:s;display:flex;gap:10px;margin:0 0 10px;font-size:12.5px}
+.steps li::before{content:counter(s);flex:none;width:24px;height:26px;background:var(--ink);color:var(--paper);font:400 14px/26px "Alfa Slab One",serif;text-align:center;box-shadow:0 3px 0 var(--wood)}
+@media (max-width:400px){.tile{width:50px;height:54px;font-size:26px}.grid{gap:6px;padding:12px 8px 10px}.grow{gap:6px}.k{height:48px}}
+.sw{display:inline-block;width:11px;height:11px;border:2px solid var(--ink);vertical-align:-1px;margin:0 2px}
+</style>
+</head>
+<body>
+<header class="top">
+  <button class="sq" id="homeBtn" aria-label="Home">⌂</button>
+  <div class="mid"><b>TYPE-PUTT</b><span id="topNum"></span></div>
+  <button class="sq" id="mute" aria-label="Sound">🔊</button>
+</header>
+<main>
+  <section id="home">
+    <div class="card hero">
+      <div class="kicker">The daily word hole</div>
+      <div class="logo">TYPE<span>-</span>PUTT</div>
+      <div class="rule">guess it · build it · putt it</div>
+      <p class="tag">Three guesses set today's word in wood type.<br>Then you putt across it.</p>
+    </div>
+    <div class="card today">
+      <div class="trow"><span id="todayLbl">HOLE #1</span><button class="lnk" id="howBtn">HOW TO PLAY ↗</button></div>
+      <div class="blanks"><i>?</i><i>?</i><i>?</i><i>?</i><i>?</i></div>
+      <button class="cta" id="playBtn">⛳ TEE OFF</button>
+      <div class="fine"><span id="hStreak"></span><span id="hNext" hidden>NEXT HOLE IN <b class="cd">--:--:--</b></span></div>
+      <div class="row3"><button class="ghost" id="statsBtn">STATS</button><button class="ghost" id="practiceBtn">PRACTICE ∞</button><button class="ghost" id="howBtn2">HOW TO</button></div>
+    </div>
+  </section>
+
+  <section id="word" hidden>
+    <div class="sub" id="wordSub">3 guesses set today's course</div>
+    <div class="card">
+      <div class="cap"><span>THE TYPE CASE</span><b id="guessCt">GUESS 1/3</b></div>
+      <div class="grid" id="grid"></div>
+      <div class="reveal" id="reveal" hidden></div>
+    </div>
+    <div class="msg" id="msg"></div>
+    <div class="kb" id="kb"></div>
+  </section>
+
+  <section id="hole" hidden>
+    <div class="card">
+      <div class="hud"><span class="st">STROKES<b id="strokes">0</b>· PAR<b id="par">3</b></span><span class="mini" id="mini"></span></div>
+      <canvas id="course"></canvas>
+    </div>
+    <div class="hstatus" id="hstatus"></div>
+    <p class="hint" id="hint">Drag back anywhere to aim · let go to putt</p>
+  </section>
+</main>
+<div id="modal" hidden></div>
+
+<script src="putt.js"></script>
+<script src="words.js"></script>
+<script>
+(() => {
+const P=window.Putt,ANSWERS=window.TP_ANSWERS||[],ALLOWED=new Set((window.TP_ALLOWED||'').split(' '));
+const $=id=>document.getElementById(id);
+const INK='#1d1a16',PAPER='#f3ead6',WOOD='#c98b4f',WOODD='#8a5a2b',GREEN='#2e7d4f',OCHRE='#e3a72f',RED='#d9412b',BLUE='#3a63d8';
+const store={get(k){try{return JSON.parse(localStorage.getItem(k))}catch(e){return null}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+const esc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+function retrigger(el,c){el.classList.remove(c);void el.offsetWidth;el.classList.add(c)}
+
+/* ---------- audio ---------- */
+let ac=null,muted=false;try{muted=localStorage.getItem('tp-muted')==='1'}catch(e){}
+function A(){if(!ac){try{ac=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(ac&&ac.state==='suspended')ac.resume();return ac}
+function tone(f,d=.1,type='sine',v=.12,when=0,slide=0){const a=A();if(!a||muted)return;const t=a.currentTime+when,o=a.createOscillator(),g=a.createGain();o.type=type;o.frequency.setValueAtTime(f,t);if(slide)o.frequency.exponentialRampToValueAtTime(f*slide,t+d);g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(v,t+.006);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g).connect(a.destination);o.start(t);o.stop(t+d+.03)}
+function noise(d=.08,v=.2,when=0,type='bandpass',freq=1800){const a=A();if(!a||muted)return;const t=a.currentTime+when,len=Math.max(1,a.sampleRate*d|0),b=a.createBuffer(1,len,a.sampleRate),ch=b.getChannelData(0);for(let i=0;i<len;i++)ch[i]=(Math.random()*2-1)*(1-i/len)**2;const s=a.createBufferSource(),fl=a.createBiquadFilter(),g=a.createGain();s.buffer=b;fl.type=type;fl.frequency.value=freq;g.gain.value=v;s.connect(fl).connect(g).connect(a.destination);s.start(t)}
+const sfx={
+  key:()=>{noise(.03,.25,0,'highpass',2500);tone(180,.04,'square',.03)},
+  flip:i=>tone(300+i*60,.06,'triangle',.06),
+  nope:()=>tone(140,.2,'square',.05,0,.7),
+  slam:i=>{noise(.09,.35,0,'lowpass',500);tone(90-i*6,.16,'sine',.3,0,.6)},
+  tick:p=>tone(500+p*700,.02,'square',.03),
+  putt:()=>{noise(.03,.3,0,'bandpass',2200);tone(320,.05,'triangle',.08)},
+  wood:v=>{tone(180+Math.min(v,700)*.4,.05,'triangle',Math.min(.16,v/3000));noise(.025,Math.min(.25,v/2000),0,'bandpass',1400)},
+  crack:()=>{for(let i=0;i<4;i++)noise(.04,.3,i*.03,'highpass',2500+i*400)},
+  splash:()=>{noise(.35,.35,0,'lowpass',700);tone(220,.3,'sine',.08,0,.5)},
+  cup:()=>{tone(700,.08,'sine',.12,0,.6);tone(420,.12,'sine',.1,.07,.6);noise(.06,.2,.1,'bandpass',900)},
+  win:()=>[0,4,7,12].forEach((s,i)=>tone(392*Math.pow(2,s/12),.25,'triangle',.12,i*.09))
+};
+
+/* ---------- day ---------- */
+const EPOCH=Date.UTC(2026,10,18);   // hole #1 = 18 Nov 2026
+function dayNum(d=new Date()){return Math.floor((Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())-EPOCH)/864e5)+1}
+const num=dayNum(),MON=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'],DOW=['SUN','MON','TUE','WED','THU','FRI','SAT'],now=new Date();
+const DAYTXT=`#${num} · ${DOW[now.getDay()]} ${MON[now.getMonth()]} ${now.getDate()}`;
+const dailyAnswer=ANSWERS[((num-1)%ANSWERS.length+ANSWERS.length)%ANSWERS.length]||'putts';
+const dayKey='tp-day-'+num;
+
+/* ---------- state ---------- */
+let mode='daily',answer=dailyAnswer,guesses=[],cur='',states=null,course=null,strokes=0,inked=0,ball=null,lastRest=null,broken=[false,false,false,false,false],done=false,sunk=false;
+function save(){if(mode!=='daily')return;store.set(dayKey,{guesses,strokes,inked,ball,lastRest,broken,done,sunk,stage:states?'hole':'word'})}
+function show(id){['home','word','hole'].forEach(s=>$(s).hidden=s!==id);$('modal').hidden=true;$('topNum').textContent=mode==='practice'&&id!=='home'?'PRACTICE':DAYTXT;scrollTo(0,0);if(id==='hole')fit()}
+
+/* ---------- home ---------- */
+function home(){
+  show('home');const rec=store.get(dayKey),st=store.get('tp-stats');
+  $('todayLbl').textContent=`HOLE #${num} · ${DOW[now.getDay()]} ${MON[now.getMonth()]} ${now.getDate()}`;
+  $('playBtn').textContent=rec&&rec.done?`✓ DONE · ${rec.strokes} STROKES`:rec&&rec.guesses&&rec.guesses.length?'▶ CONTINUE':'⛳ TEE OFF';
+  $('hNext').hidden=!(rec&&rec.done);
+  const streak=st&&(st.last===num||st.last===num-1)?st.streak:0;$('hStreak').textContent=streak?`STREAK ${streak}`:'';
+}
+
+/* ---------- word stage ---------- */
+function score(g,a){const r=Array(5).fill('b'),left={};for(let i=0;i<5;i++)if(g[i]===a[i])r[i]='g';else left[a[i]]=(left[a[i]]||0)+1;
+  for(let i=0;i<5;i++)if(r[i]!=='g'&&left[g[i]]){r[i]='y';left[g[i]]--}return r}
+const KEYS=['qwertyuiop','asdfghjkl','⏎zxcvbnm⌫'];
+function buildWord(){
+  $('grid').innerHTML=[0,1,2].map(r=>`<div class="grow" id="row${r}">${[0,1,2,3,4].map(c=>`<div class="tile" id="t${r}${c}"></div>`).join('')}</div>`).join('');
+  $('kb').innerHTML=KEYS.map(row=>`<div class="kr">${[...row].map(k=>k==='⏎'?'<button class="k wide" data-k="enter">ENTER</button>':k==='⌫'?'<button class="k wide" data-k="back">⌫</button>':`<button class="k" data-k="${k}" id="k-${k}">${k}</button>`).join('')}</div>`).join('');
+  $('reveal').hidden=true;$('msg').innerHTML='';$('kb').hidden=false;
+}
+function paintRow(r,g,animate){const res=score(g,answer);res.forEach((s,i)=>{const t=$(`t${r}${i}`);t.textContent=g[i];
+  const go=()=>{t.className='tile '+s;const k=$('k-'+g[i]);if(k){const rank={g:3,y:2,b:1},cur=k.classList.contains('g')?3:k.classList.contains('y')?2:k.classList.contains('b')?1:0;if(rank[s]>cur)k.className='k '+s}};
+  if(animate){setTimeout(()=>{go();sfx.flip(i)},i*160)}else go()})}
+function wordMsg(t){$('msg').innerHTML=t?`<span>${esc(t)}</span>`:''}
+function typed(k){
+  if(states||guesses.length>=3)return;A();
+  if(k==='enter'){
+    if(cur.length<5){wordMsg('Five letters, please');retrigger($('row'+guesses.length),'shake');sfx.nope();return}
+    if(!ALLOWED.has(cur)){wordMsg('Not in the type case');retrigger($('row'+guesses.length),'shake');sfx.nope();return}
+    const r=guesses.length;guesses.push(cur);paintRow(r,cur,true);cur='';save();
+    $('guessCt').textContent=`GUESS ${Math.min(3,guesses.length+1)}/3`;
+    if(guesses[guesses.length-1]===answer||guesses.length>=3)setTimeout(finishWord,900);
+    return}
+  if(k==='back'){cur=cur.slice(0,-1)}else if(/^[a-z]$/.test(k)&&cur.length<5)cur+=k;else return;
+  sfx.key();wordMsg('');
+  const r=guesses.length;for(let i=0;i<5;i++){const t=$(`t${r}${i}`);t.textContent=cur[i]||'';t.className='tile'+(cur[i]?' typed':'')}
+}
+// which letters of the answer are set in solid type, brittle type, or just a wire outline
+function computeStates(){return [...answer].map((ch,i)=>guesses.some(g=>g[i]===ch)?'solid':guesses.some(g=>g.includes(ch))?'brittle':'wire')}
+function parFor(st){const n=st.filter(s=>s==='solid').length;return n===5?2:n>=3?3:n>=1?4:5}
+function finishWord(){
+  states=computeStates();$('kb').hidden=true;const solved=guesses.includes(answer);
+  $('guessCt').textContent=solved?'SOLVED':'OUT OF GUESSES';
+  wordMsg(solved?['Set in one!','Typeset!','Nicely set.'][guesses.length-1]:`The word was ${answer.toUpperCase()}`);
+  const rv=$('reveal');rv.hidden=false;
+  rv.innerHTML=`<div class="ans">${[...answer].map((c,i)=>`<div class="tile ${states[i]==='solid'?'g':states[i]==='brittle'?'y':'b'}" style="animation-delay:${i*.12}s">${c}</div>`).join('')}</div>
+   <div class="legend"><span><i style="background:var(--ink)"></i>solid</span><span><i style="background:var(--ochre)"></i>brittle · 1 hit</span><span><i style="border-style:dashed;border-color:var(--blue)"></i>missed · see-through</span></div>
+   <div style="padding:0 14px 6px"><button class="cta" id="buildBtn">⛳ SET THE COURSE</button></div>`;
+  $('buildBtn').onclick=()=>startHole(true);save();
+}
+
+/* ---------- hole ---------- */
+const cv=$('course'),ctx=cv.getContext('2d');
+let scale=1,dpr=1,paperC=null,stainC=null,sim=null,acc=0,lastT=0,aim=null,particles=[],wob=[0,0,0,0,0],slamT=0,flagT=0,lastTick=-1;
+function fit(){const w=Math.min($('hole').clientWidth||innerWidth-28,900);dpr=Math.min(2,devicePixelRatio||1);scale=(w-4)/P.W;
+  cv.width=Math.round(P.W*scale*dpr);cv.height=Math.round(P.H*scale*dpr);cv.style.height=Math.round(P.H*scale)+'px'}
+addEventListener('resize',()=>{if(!$('hole').hidden)fit()});
+function makePaper(){
+  paperC=document.createElement('canvas');paperC.width=P.W*2;paperC.height=P.H*2;const x=paperC.getContext('2d');x.scale(2,2);
+  x.fillStyle=PAPER;x.fillRect(0,0,P.W,P.H);
+  let a=7;const r=()=>(a=a*16807%2147483647)/2147483647;
+  for(let i=0;i<1400;i++){x.fillStyle=`rgba(90,70,40,${r()*.12})`;x.fillRect(r()*P.W,r()*P.H,1+r()*1.5,1+r()*1.5)}
+  x.strokeStyle='#3a63d82a';x.lineWidth=1;x.setLineDash([4,4]);
+  [P.TOP,P.TOP+7*P.B].forEach(y=>{x.beginPath();x.moveTo(0,y+.5);x.lineTo(P.W,y+.5);x.stroke()});
+  x.setLineDash([]);x.fillStyle='#3a63d855';x.font='500 8px "DM Mono",monospace';x.fillText('CAP HEIGHT',6,P.TOP-4);x.fillText('BASELINE',6,P.TOP+7*P.B-4);
+  stainC=document.createElement('canvas');stainC.width=P.W*2;stainC.height=P.H*2;stainC.getContext('2d').scale(2,2);
+}
+function startHole(animate){
+  states=states||computeStates();course=P.buildCourse(answer,states);
+  $('par').textContent=parFor(states);$('strokes').textContent=strokes;
+  $('mini').innerHTML=[...answer].map((c,i)=>`<i class="${states[i]}">${c}</i>`).join('');
+  if(!ball){ball={x:course.tee.x,y:course.tee.y};lastRest={...ball}}
+  show('hole');makePaper();particles=[];wob=[0,0,0,0,0];
+  slamT=animate?performance.now():0;if(animate)[0,1,2,3,4].forEach(i=>setTimeout(()=>sfx.slam(i),180+i*140));
+  hstatus(done?(sunk?'in the cup':''):'');save();
+  if(done)setTimeout(()=>result(true),400);
+}
+function hstatus(t,c){$('hstatus').innerHTML=t?`<span class="${c||''}">${esc(t)}</span>`:''}
+const toWorld=e=>{const r=cv.getBoundingClientRect();return[(e.clientX-r.left)/r.width*P.W,(e.clientY-r.top)/r.height*P.H]};
+const SHOT_K=4.4;
+cv.addEventListener('pointerdown',e=>{if(sim||done||!course)return;A();aim={sx:e.clientX,sy:e.clientY,vx:0,vy:0};try{cv.setPointerCapture(e.pointerId)}catch(_){}});
+cv.addEventListener('pointermove',e=>{if(!aim)return;const r=cv.getBoundingClientRect(),k=P.W/r.width;
+  let vx=(aim.sx-e.clientX)*k*SHOT_K,vy=(aim.sy-e.clientY)*k*SHOT_K;const sp=Math.hypot(vx,vy);if(sp>P.MAX_V){vx*=P.MAX_V/sp;vy*=P.MAX_V/sp}aim.vx=vx;aim.vy=vy;
+  const p=Math.min(1,Math.hypot(vx,vy)/P.MAX_V),q=Math.round(p*12);if(q!==lastTick){lastTick=q;sfx.tick(p)}});
+function release(){if(!aim)return;const a=aim;aim=null;lastTick=-1;if(Math.hypot(a.vx,a.vy)<40)return;
+  strokes++;$('strokes').textContent=strokes;hstatus('');sfx.putt();
+  sim=P.start(course,ball.x,ball.y,a.vx,a.vy,broken);acc=0}
+cv.addEventListener('pointerup',release);cv.addEventListener('pointercancel',()=>{aim=null});
+
+function onHit(h){
+  if(!h.pad)wob[h.li]=Math.min(1,wob[h.li]+h.v/600);sfx.wood(h.v);
+  if(h.v>240)for(let i=0;i<6;i++)particles.push({k:'ink',x:h.x,y:h.y,vx:(Math.random()-.5)*260,vy:-80-Math.random()*220,life:1.2,r:1+Math.random()*2.2})}
+function shatter(li){sfx.crack();course.blocks.filter(b=>b.li===li&&!b.pad).forEach(b=>{for(let i=0;i<3;i++)particles.push({k:'shard',x:b.x+Math.random()*P.B,y:b.y+Math.random()*P.B,vx:(Math.random()-.5)*200,vy:-60-Math.random()*160,life:1.4,r:3+Math.random()*4,rot:Math.random()*6})})}
+function endShot(res){
+  const s=sim;sim=null;broken=s.broken.slice();
+  if(res==='sunk'){ball={x:s.x,y:s.y};sunk=true;done=true;sfx.cup();setTimeout(sfx.win,250);flagT=performance.now();
+    for(let i=0;i<50;i++)particles.push({k:'conf',x:course.cup.x+P.B/2,y:course.cup.y,vx:(Math.random()-.5)*360,vy:-150-Math.random()*300,life:1.6,c:[RED,GREEN,OCHRE,BLUE][i%4],rot:Math.random()*6});
+    hstatus(strokes===1?'hole in one!':'in the cup','good');finishDay();setTimeout(()=>result(false),1300)}
+  else if(res==='inked'){inked++;strokes++;$('strokes').textContent=strokes;sfx.splash();
+    for(let i=0;i<14;i++)particles.push({k:'ink',x:s.x,y:P.PIT_Y-8,vx:(Math.random()-.5)*200,vy:-100-Math.random()*200,life:1,r:1.5+Math.random()*2.5});
+    hstatus('inked! +1 stroke','bad');ball={...lastRest}}
+  else{ball={x:s.x,y:s.y};lastRest={...ball}}
+  if(!done&&strokes>=10){done=true;hstatus('picked up · 10 strokes','bad');finishDay();setTimeout(()=>result(false),900)}
+  save();
+}
+function tick(t){
+  const dt=Math.min(.05,(t-(lastT||t))/1000);lastT=t;
+  if(sim){acc+=dt;let n=0;while(acc>=P.DT&&!sim.done&&n<60){P.step(sim);acc-=P.DT;n++;for(const h of sim.hits)onHit(h);for(const li of sim.breakNow)shatter(li)}
+    if(sim.done)endShot(sim.done)}
+  for(const p of particles){p.vy+=700*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;if(p.rot!==undefined)p.rot+=dt*8;
+    if(p.k==='ink'&&p.life<=0&&stainC){const x=stainC.getContext('2d');x.fillStyle='#1d1a16'+(p.y<P.PIT_Y-10?'55':'00');x.beginPath();x.arc(p.x,Math.min(p.y,P.H),p.r*1.4,0,7);x.fill()}}
+  particles=particles.filter(p=>p.life>0);
+  for(let i=0;i<5;i++)wob[i]*=Math.pow(.02,dt);
+  if(!$('hole').hidden&&course)draw(t);
+  requestAnimationFrame(tick);
+}
+
+/* ---------- drawing ---------- */
+function letterBox(li){const x=P.letterX(li);return [x,P.TOP,5*P.B,7*P.B]}
+function draw(t){
+  const k=scale*dpr;ctx.setTransform(k,0,0,k,0,0);ctx.clearRect(0,0,P.W,P.H);
+  ctx.drawImage(paperC,0,0,P.W,P.H);ctx.drawImage(stainC,0,0,P.W,P.H);
+  // ink pit
+  ctx.fillStyle=INK;ctx.beginPath();ctx.moveTo(0,P.H);for(let x=0;x<=P.W;x+=10)ctx.lineTo(x,P.PIT_Y-6+Math.sin(x/28+t/600)*3);ctx.lineTo(P.W,P.H);ctx.fill();
+  ctx.fillStyle='#ffffff18';for(let x=8;x<P.W;x+=46)ctx.fillRect(x+Math.sin(t/900+x)*6,P.PIT_Y+12,16,2);
+  ctx.fillStyle='#f3ead699';ctx.font='500 9px "DM Mono",monospace';ctx.fillText('INK PIT · +1 STROKE',8,P.H-10);
+  // letters
+  const B=P.B,slam=slamT?Math.min(1,(t-slamT)/1100):1;
+  for(let li=0;li<5;li++){
+    const st=states[li],[lx,ly,lw,lh]=letterBox(li),drop=slamT?Math.max(0,1-(slam*5.5-li*.9)):0;
+    if(drop>=1)continue;
+    const w=wob[li],dx=Math.sin(t/28)*w*3,rot=Math.sin(t/35)*w*.03;
+    ctx.save();ctx.translate(lx+lw/2+dx,ly+lh-drop*drop*220);ctx.rotate(rot);ctx.translate(-(lx+lw/2),-(ly+lh));
+    const bl=course.blocks.filter(b=>b.li===li);
+    if(st==='wire'){ctx.strokeStyle=BLUE;ctx.lineWidth=1.5;ctx.setLineDash([3,3]);
+      for(const b of bl){if(b.pad)continue;const has=(c,r)=>{const o=course.grid.get(c+','+r);return o&&o.li===li&&!o.pad};
+        ctx.beginPath();if(!has(b.c,b.r-1)){ctx.moveTo(b.x,b.y);ctx.lineTo(b.x+B,b.y)}if(!has(b.c,b.r+1)){ctx.moveTo(b.x,b.y+B);ctx.lineTo(b.x+B,b.y+B)}
+        if(!has(b.c-1,b.r)){ctx.moveTo(b.x,b.y);ctx.lineTo(b.x,b.y+B)}if(!has(b.c+1,b.r)){ctx.moveTo(b.x+B,b.y);ctx.lineTo(b.x+B,b.y+B)}ctx.stroke()}
+      ctx.setLineDash([])}
+    else if(!(st==='brittle'&&broken[li])){
+      for(const b of bl){if(b.pad)continue;ctx.fillStyle=st==='solid'?WOODD:'#a0731c';ctx.fillRect(b.x+4,b.y+4,B,B)}
+      for(const b of bl){if(b.pad)continue;ctx.fillStyle=st==='solid'?WOOD:'#c99230';ctx.fillRect(b.x+2,b.y+2,B,B)}
+      for(const b of bl){if(b.pad)continue;ctx.fillStyle=st==='solid'?INK:OCHRE;ctx.fillRect(b.x,b.y,B,B)}
+      if(st==='solid'){ctx.fillStyle='#ffffff14';for(const b of bl)if(!b.pad)ctx.fillRect(b.x+2,b.y+2,B-8,2)}
+      else{ctx.strokeStyle='#5a3d0a';ctx.lineWidth=1;for(const b of bl){if(b.pad||(b.c+b.r)%3)continue;ctx.beginPath();ctx.moveTo(b.x+4,b.y+3);ctx.lineTo(b.x+10,b.y+10);ctx.lineTo(b.x+7,b.y+16);ctx.moveTo(b.x+10,b.y+10);ctx.lineTo(b.x+16,b.y+8);ctx.stroke()}}
+    }
+    ctx.restore();
+  }
+  // tee box and cup pads (always solid)
+  for(const b of course.blocks)if(b.pad){ctx.fillStyle='#5b574f';ctx.fillRect(b.x+3,b.y+3,B,B);ctx.fillStyle='#8f8a80';ctx.fillRect(b.x,b.y,B,B);ctx.fillStyle='#5b574f';[[4,4],[B-6,4],[4,B-6],[B-6,B-6]].forEach(([u,v])=>ctx.fillRect(b.x+u,b.y+v,2,2))}
+  // cup + flag
+  const c=course.cup,fl=flagT?Math.min(1,(t-flagT)/600):0;
+  ctx.fillStyle=INK;ctx.beginPath();ctx.ellipse(c.x+B/2,c.y+B-1,B/2-1,3,0,0,7);ctx.fill();
+  const poleTop=c.y-70-fl*20;ctx.strokeStyle=INK;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(c.x+B/2,c.y+B-2);ctx.lineTo(c.x+B/2,poleTop);ctx.stroke();
+  const wv=Math.sin(t/180)*4;ctx.fillStyle=RED;ctx.beginPath();ctx.moveTo(c.x+B/2,poleTop);ctx.lineTo(c.x+B/2+30,poleTop+8+wv);ctx.lineTo(c.x+B/2,poleTop+18);ctx.fill();
+  ctx.fillStyle=PAPER;ctx.font='12px "Alfa Slab One",serif';ctx.fillText(String(num>0?num:1),c.x+B/2+5,poleTop+13);
+  // tee peg
+  if(!sim&&ball&&Math.abs(ball.x-course.tee.x)<1&&Math.abs(ball.y-course.tee.y)<1){ctx.fillStyle=WOOD;ctx.fillRect(course.tee.x-2,course.tee.y+P.R-4,4,4)}
+  // aim preview
+  if(aim&&ball&&Math.hypot(aim.vx,aim.vy)>20){
+    const s=P.start(course,ball.x,ball.y,aim.vx,aim.vy,broken);ctx.fillStyle='#fffaf0';ctx.strokeStyle=INK;ctx.lineWidth=1;
+    for(let i=0;i<130&&!s.done;i++){P.step(s);if(i%6===0){ctx.beginPath();ctx.arc(s.x,s.y,2.2,0,7);ctx.fill();ctx.stroke()}}
+    ctx.strokeStyle=RED;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(ball.x,ball.y);ctx.lineTo(ball.x-aim.vx/SHOT_K,ball.y-aim.vy/SHOT_K);ctx.stroke();
+    ctx.fillStyle=INK;ctx.font='500 10px "DM Mono",monospace';ctx.fillText(Math.round(Math.hypot(aim.vx,aim.vy)/P.MAX_V*100)+'%',ball.x+10,ball.y-12)}
+  // ball
+  const bx=sim?sim.x:ball?ball.x:0,by=sim?sim.y:ball?ball.y:0;
+  if(ball&&!(sunk&&!sim)){ctx.fillStyle='#00000022';ctx.beginPath();ctx.ellipse(bx+2,by+P.R+1,P.R,2,0,0,7);ctx.fill();
+    ctx.fillStyle='#fffdf7';ctx.strokeStyle=INK;ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(bx,by,P.R,0,7);ctx.fill();ctx.stroke();
+    ctx.fillStyle='#c9c2b2';[[-2,-1],[1,1],[2,-2],[-1,2]].forEach(([u,v])=>ctx.fillRect(bx+u,by+v,1.2,1.2))}
+  // particles
+  for(const p of particles){ctx.globalAlpha=Math.max(0,Math.min(1,p.life));
+    if(p.k==='ink'){ctx.fillStyle=INK;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,7);ctx.fill()}
+    else{ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.rot);ctx.fillStyle=p.k==='shard'?OCHRE:p.c;ctx.fillRect(-p.r/2||-3,-2,p.r||6,p.k==='shard'?p.r:3);ctx.restore()}}
+  ctx.globalAlpha=1;
+}
+
+/* ---------- results, stats ---------- */
+function vsPar(){return strokes-parFor(states)}
+function gradeName(){if(!sunk)return'PICKED UP';if(strokes===1)return'HOLE IN ONE!';const d=vsPar();return d<=-3?'ALBATROSS!':d===-2?'EAGLE!':d===-1?'BIRDIE!':d===0?'PAR.':d===1?'BOGEY.':d===2?'DOUBLE BOGEY.':'TRIPLE BOGEY+'}
+function shareText(){const row=states.map(s=>s==='solid'?'🟩':s==='brittle'?'🟨':'⬛').join('');
+  return `${mode==='daily'?'Type-Putt #'+num:'Type-Putt practice'} | Word: ${row} | Hole: ${sunk?strokes:'10+'} Stroke${strokes===1?'':'s'} (Par ${parFor(states)}) ⛳`}
+function finishDay(){if(mode!=='daily')return;const st=store.get('tp-stats')||{played:0,solved:0,streak:0,max:0,last:0,hio:0,strokes:0,dist:{}};
+  if(st.done===num)return;st.done=num;st.played++;if(guesses.includes(answer))st.solved++;st.strokes+=strokes;if(sunk&&strokes===1)st.hio++;
+  const d=sunk?Math.max(-2,Math.min(3,vsPar())):'x';st.dist[d]=(st.dist[d]||0)+1;
+  st.streak=(st.last===num-1?st.streak:0)+1;st.last=num;st.max=Math.max(st.max,st.streak);store.set('tp-stats',st)}
+function result(restored){
+  const txt=shareText(),m=$('modal');
+  m.innerHTML=`<div class="card mcard"><div class="cap"><span>${mode==='daily'?'HOLE #'+num:'PRACTICE'}${restored?' · TODAY':''}</span><b>SCORECARD</b></div><div class="mb">
+  <div class="kicker">THE WORD WAS ${answer.toUpperCase()}</div><h2>${gradeName()}</h2>
+  <div class="stats"><div><b>${sunk?strokes:'10+'}</b><small>STROKES</small></div><div><b>${parFor(states)}</b><small>PAR</small></div><div><b>${guesses.includes(answer)?guesses.length+'/3':'✗'}</b><small>WORD</small></div></div>
+  <div class="share">${esc(txt)}</div>
+  <div class="mrow"><button class="cta" id="share">SHARE ↗</button><button class="ghost" id="again">${mode==='daily'?'PRACTICE ∞':'NEW WORD'}</button></div>
+  ${mode==='daily'?'<div class="nextp">NEXT HOLE IN <b class="cd">--:--:--</b></div>':''}
+  <div class="mlinks"><a id="mstats">STATS</a><a id="mclose">CLOSE</a></div></div></div>`;
+  m.hidden=false;tickCd();
+  $('share').onclick=()=>share(txt);$('again').onclick=practice;$('mstats').onclick=statsModal;$('mclose').onclick=()=>{m.hidden=true};
+}
+function statsModal(){
+  const st=store.get('tp-stats')||{played:0,solved:0,streak:0,max:0,hio:0,strokes:0,dist:{}},rec=store.get(dayKey);
+  const streak=st.last===num||st.last===num-1?st.streak:0,keys=['-2','-1','0','1','2','3','x'],names={'-2':'eagle+','-1':'birdie','0':'par','1':'bogey','2':'double','3':'triple+','x':'picked up'};
+  const mx=Math.max(1,...keys.map(k=>st.dist[k]||0));let mine=null;
+  if(rec&&rec.done){const s=computeFrom(rec);mine=s};
+  const m=$('modal');
+  m.innerHTML=`<div class="card mcard"><div class="cap"><span>YOUR CARD</span><b>STATS</b></div><div class="mb">
+  <div class="stats four"><div><b>${st.played}</b><small>PLAYED</small></div><div><b>${st.played?Math.round(100*st.solved/st.played):0}%</b><small>WORDS</small></div><div><b>${streak}</b><small>STREAK</small></div><div><b>${st.hio}</b><small>ACES</small></div></div>
+  <div class="kicker">SCORE VS PAR</div>
+  <div class="hist">${keys.map(k=>`<div class="hrow"><span>${names[k]}</span><i class="${k===mine?'me':''}" style="width:${10+90*(st.dist[k]||0)/mx}%">${st.dist[k]||0}</i></div>`).join('')}</div>
+  <div class="nextp">NEXT HOLE IN <b class="cd">--:--:--</b></div>
+  <div style="margin-top:12px"><button class="cta" id="mclose">CLOSE</button></div></div></div>`;
+  m.hidden=false;tickCd();$('mclose').onclick=()=>{m.hidden=true};
+}
+function computeFrom(rec){if(!rec.sunk)return'x';const a=dailyAnswer,st=[...a].map((ch,i)=>rec.guesses.some(g=>g[i]===ch)?'solid':rec.guesses.some(g=>g.includes(ch))?'brittle':'wire');return String(Math.max(-2,Math.min(3,rec.strokes-parFor(st))))}
+function howTo(){
+  const m=$('modal');
+  m.innerHTML=`<div class="card mcard"><div class="cap"><span>HOW TO PLAY</span><b>README</b></div><div class="mb"><h2>Guess it. Putt it.</h2>
+  <ol class="steps"><li><span><b>Guess today's five-letter word</b> in 3 tries. Each guess colours its letters: <i class="sw" style="background:var(--green)"></i> right spot, <i class="sw" style="background:var(--ochre)"></i> wrong spot, <i class="sw" style="background:var(--grey)"></i> not in the word.</span></li>
+  <li><span>The word becomes <b>a mini-golf hole over an ink pit</b>. Letters you got in the right spot are <b>solid type</b>. Letters you found in the wrong spot are <b>brittle</b> and break after one hit. Letters you missed are <b>outlines</b>, and the ball falls straight through.</span></li>
+  <li><span><b>Drag back anywhere to aim</b>, let go to putt. Get from the tee box on the first letter into the cup in the last one.</span></li>
+  <li><span>Fall in the ink and it's <b>+1 stroke</b>, back to your last spot. Par depends on how many letters you set. One hole a day.</span></li></ol>
+  <button class="cta" id="mclose">LET'S PUTT</button></div></div>`;
+  m.hidden=false;$('mclose').onclick=()=>{m.hidden=true;store.set('tp-howto',1)};
+}
+function tickCd(){const n=new Date(),ms=new Date(n.getFullYear(),n.getMonth(),n.getDate()+1)-n,s=Math.max(0,Math.floor(ms/1000));
+  const t=dayNum()!==num?'READY · REFRESH':[s/3600|0,(s/60|0)%60,s%60].map(x=>String(x).padStart(2,'0')).join(':');document.querySelectorAll('.cd').forEach(e=>e.textContent=t)}
+setInterval(tickCd,1000);
+async function share(text){
+  try{if(navigator.share&&matchMedia('(pointer:coarse)').matches){await navigator.share({text});return}}catch(e){if(e&&e.name==='AbortError')return}
+  const b=$('share');try{await navigator.clipboard.writeText(text);if(b)b.textContent='COPIED ✓'}catch(e){if(b)b.textContent='COPY FAILED'}setTimeout(()=>{if($('share'))$('share').textContent='SHARE ↗'},1600)}
+
+/* ---------- flow ---------- */
+function resetRound(){guesses=[];cur='';states=null;course=null;strokes=0;inked=0;ball=null;lastRest=null;broken=[false,false,false,false,false];done=false;sunk=false;flagT=0}
+function playDaily(){
+  mode='daily';answer=dailyAnswer;resetRound();const rec=store.get(dayKey);
+  if(rec){guesses=rec.guesses||[];strokes=rec.strokes||0;inked=rec.inked||0;ball=rec.ball;lastRest=rec.lastRest;broken=rec.broken||broken;done=!!rec.done;sunk=!!rec.sunk}
+  buildWord();show('word');guesses.forEach((g,r)=>paintRow(r,g,false));$('guessCt').textContent=`GUESS ${Math.min(3,guesses.length+1)}/3`;
+  if(guesses.includes(answer)||guesses.length>=3){finishWord();if(rec&&rec.stage==='hole')startHole(false)}
+  else if(!store.get('tp-howto'))howTo();
+}
+function practice(){mode='practice';resetRound();answer=ANSWERS[Math.floor(Math.random()*ANSWERS.length)];buildWord();show('word');$('guessCt').textContent='GUESS 1/3';$('wordSub').textContent='practice word · doesn’t count'}
+
+$('kb').addEventListener('click',e=>{const k=e.target.closest('[data-k]');if(k)typed(k.dataset.k)});
+addEventListener('keydown',e=>{if($('word').hidden||!$('modal').hidden||e.metaKey||e.ctrlKey||e.altKey)return;const k=e.key.toLowerCase();
+  if(k==='enter')typed('enter');else if(k==='backspace')typed('back');else if(/^[a-z]$/.test(k))typed(k)});
+$('playBtn').onclick=playDaily;$('practiceBtn').onclick=practice;$('statsBtn').onclick=statsModal;$('howBtn').onclick=howTo;$('howBtn2').onclick=howTo;
+$('homeBtn').onclick=home;
+const setMute=()=>{$('mute').textContent=muted?'🔇':'🔊'};setMute();
+$('mute').onclick=()=>{muted=!muted;setMute();try{localStorage.setItem('tp-muted',muted?'1':'0')}catch(e){}};
+$('modal').addEventListener('click',e=>{if(e.target.id==='modal')$('modal').hidden=true});
+home();
+const q=new URLSearchParams(location.search).get('word');
+if(q&&/^[a-z]{5}$/.test(q)){store.set('tp-howto',1);mode='practice';resetRound();answer=q;buildWord();show('word');$('wordSub').textContent='test word'}
+requestAnimationFrame(tick);
+window.__tp={get answer(){return answer},get course(){return course},get ball(){return ball},get strokes(){return strokes},get done(){return done},get sunk(){return sunk},get scale(){return scale},shot:(vx,vy)=>{if(sim||done)return;strokes++;$('strokes').textContent=strokes;sim=P.start(course,ball.x,ball.y,vx,vy,broken)}};
+})();
+</script>
+</body>
+</html>
