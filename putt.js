@@ -1,19 +1,15 @@
-/* Type-Putt course + physics. Deterministic (only + - * / and Math.sqrt in the simulation),
-   so the same shot behaves identically in every browser and in tools/check.js.
+/* Type-Putt: a top-down mini-golf hole built from the day's word. Deterministic (only + - * /
+   and Math.sqrt in the simulation), so shots behave identically in every browser and in the tools.
 
-   The course is the day's word set in big 5x7 "wood type" blocks standing over an ink pit.
-   Letter states come from the word game:  solid (found in place) · brittle (found, wrong spot:
-   breaks after one hit) · wire (missed: the ball passes straight through).
-   The line is locked up like real type: wooden spacer posts stand between the letters and a brass
-   rule runs across the top, so the letters are the ground you putt along, not scenery to lob over.
-   The tee sits on a tee box on top of the first letter. The cup sits in the last letter at the
-   bottom of its centre column (inside the loop of an O, at the foot of an L), with a shaft cut
-   above it so it can always be reached from the sky. */
+   The five letters sit on the green in two staggered rows between the tee (bottom) and the cup (top),
+   in a 5x7 block face. What each letter is depends on the word game:
+     solid   (right letter, right spot)  raised wooden type: a wall you can bank off
+     brittle (right letter, wrong spot)  a wall for one hit, then it crumbles into an ink pit
+     wire    (missed)                    the letter is cut out of the green as wet ink: fall in = +1 stroke
+   The ball rolls with friction and only drops into the cup if it's moving slowly enough. */
 (function (root) {
-  const B = 20, COLS = 31, W = 620, H = 400, TOP = 170;           // block size, world size, letter top
-  const R = 6, G = 900, DT = 1 / 240, MAX_V = 540, MAX_STEPS = 240 * 14;
-  const CEIL_Y = TOP - 36;                                          // the brass rule across the top: no lobbing over the word
-  const PIT_Y = TOP + 7 * B + 30;                                    // fall below this = inked
+  const W = 420, H = 560, B = 18, R = 5, DT = 1 / 240, MAX_V = 700, MAX_STEPS = 240 * 12;
+  const DECEL = 260, DRAG = .55, STOP = 6, CUP_R = 9, CUP_MAXV = 300, E_RAIL = .78, E_TYPE = .7;
   const FONT = {
     A: ['.###.', '#...#', '#...#', '#####', '#...#', '#...#', '##.##'],
     B: ['####.', '.#..#', '.#..#', '.###.', '.#..#', '.#..#', '####.'],
@@ -42,103 +38,86 @@
     Y: ['#...#', '#...#', '.#.#.', '..#..', '..#..', '..#..', '.###.'],
     Z: ['#####', '#...#', '...#.', '..#..', '.#...', '#...#', '#####']
   };
-  const letterX = i => 20 + i * 6 * B;                               // left edge of letter i
+  // default layout: C O R on the upper row, A L on the lower row (all positions are letter top-left corners)
+  const BASE = { L: [[18, 126], [162, 126], [306, 126], [90, 306], [234, 306]], tee: [210, 505], cup: [210, 58] };
 
-  // the cell (row) in a glyph's centre column where the tee / cup sits: lowest empty cell with a block below,
-  // or on top of the letter if the column is solid all the way up (T, I)
-  function seat(glyph) {
-    for (let r = 5; r >= 0; r--) if (glyph[r][2] === '.' && glyph[r + 1][2] === '#') return r;
-    return -1;
-  }
-
-  // states: array of 5 of 'solid' | 'brittle' | 'wire'
-  function buildCourse(word, states) {
-    word = word.toUpperCase();
-    const blocks = [];                                               // {c, r, x, y, li, pad}
-    const grid = new Map();                                          // "c,r" -> block
-    let tee = null, cup = null;
+  // letters snap to the B grid so walls line up cell by cell
+  const snap = v => Math.round(v / B) * B;
+  function buildCourse(word, states, layout) {
+    word = word.toUpperCase(); layout = layout || BASE;
+    const cells = new Map(), blocks = [];
     for (let li = 0; li < 5; li++) {
-      const glyph = FONT[word[li]].map(s => s.split(''));
-      // tee: a tee box on top of the first letter (launching from inside a bowl can't get anywhere).
-      // cup: at the bottom of the last letter's centre column, with a shaft cut above it.
-      const seatRow = li === 0 ? -1 : seat(glyph);
-      if (li === 0) glyph[0][2] = '#';                               // make sure there's a block to tee off
-      if (li === 4) for (let r = 0; r < seatRow; r++) glyph[r][2] = '.';
-      const c0 = letterX(li) / B | 0;
+      const g = FONT[word[li]], x0 = snap(layout.L[li][0]), y0 = snap(layout.L[li][1]);
       for (let r = 0; r < 7; r++) for (let c = 0; c < 5; c++) {
-        if (glyph[r][c] !== '#') continue;
-        const padRow = seatRow + 1;                                  // the block the tee / cup rests on
-        const pad = (li === 0 || li === 4) && c === 2 && r === (seatRow === -1 ? 0 : padRow);
-        const b = { c: c0 + c, r, x: (c0 + c) * B, y: TOP + r * B, li, pad };
-        blocks.push(b); grid.set(b.c + ',' + r, b);
+        if (g[r][c] !== '#') continue;
+        const cx = x0 / B + c, cy = y0 / B + r, b = { cx, cy, x: cx * B, y: cy * B, li };
+        cells.set(cx + ',' + cy, b); blocks.push(b);
       }
-      const cx = (c0 + 2) * B + B / 2, cy = TOP + seatRow * B;       // top-left y of the seat cell
-      // wooden spacer posts lock the line up: one full-height post either side of every letter
-      for (const pc of li === 4 ? [c0 - 1, c0 + 5] : [c0 - 1]) for (let r = 0; r < 7; r++) {
-        if (grid.has(pc + ',' + r)) continue;
-        const b = { c: pc, r, x: pc * B, y: TOP + r * B, li: -1, pad: true, post: true };
-        blocks.push(b); grid.set(pc + ',' + r, b);
-      }
-      if (li === 0) tee = { x: cx, y: cy + B - R - .01, col: c0 + 2, row: seatRow };
-      if (li === 4) cup = { x: (c0 + 2) * B, y: cy, col: c0 + 2, row: seatRow };
     }
-    return { word, states: states.slice(), blocks, grid, tee, cup };
+    return { word, states: states.slice(), layout, cells, blocks, tee: { x: layout.tee[0], y: layout.tee[1] }, cup: { x: layout.cup[0], y: layout.cup[1] } };
   }
-
-  const solidAt = (course, broken, c, r) => {
-    const b = course.grid.get(c + ',' + r);
-    if (!b) return null;
-    if (b.pad) return b;
+  // what a cell is right now: 'wall', 'pit' or null (open green)
+  function cellKind(course, broken, cx, cy) {
+    const b = course.cells.get(cx + ',' + cy); if (!b) return null;
     const st = course.states[b.li];
-    if (st === 'wire' || (st === 'brittle' && broken[b.li])) return null;
-    return b;
-  };
+    if (st === 'solid') return 'wall';
+    if (st === 'brittle') return broken[b.li] ? 'pit' : 'wall';
+    return 'pit';
+  }
 
   function start(course, x, y, vx, vy, broken) {
     const sp = Math.sqrt(vx * vx + vy * vy); if (sp > MAX_V) { vx = vx / sp * MAX_V; vy = vy / sp * MAX_V; }
-    return { course, x, y, vx, vy, n: 0, still: 0, done: null, hits: [], broken: broken ? broken.slice() : [false, false, false, false, false], breakNow: [] };
+    return { course, x, y, vx, vy, n: 0, done: null, hits: [], broken: broken ? broken.slice() : [false, false, false, false, false], breakNow: [], lip: false };
+  }
+
+  function bounce(s, nx, ny, pen, e, li, qx, qy) {
+    s.x += nx * pen; s.y += ny * pen;
+    const vn = s.vx * nx + s.vy * ny; if (vn >= 0) return;
+    s.vx -= (1 + e) * vn * nx; s.vy -= (1 + e) * vn * ny;
+    if (-vn > 30) s.hits.push({ li, v: -vn, x: qx, y: qy });
+    if (li >= 0 && s.course.states[li] === 'brittle' && !s.broken[li]) { s.broken[li] = true; s.breakNow.push(li); }
   }
 
   function step(s) {
     const cs = s.course; s.hits = []; s.breakNow = [];
-    s.vy += G * DT; s.x += s.vx * DT; s.y += s.vy * DT;
-    if (s.x < R) { s.x = R; if (s.vx < 0) s.vx = -s.vx * .5; }
-    if (s.x > W - R) { s.x = W - R; if (s.vx > 0) s.vx = -s.vx * .5; }
-    if (s.y < CEIL_Y + R) { s.y = CEIL_Y + R; if (s.vy < 0) { if (-s.vy > 60) s.hits.push({ li: -2, v: -s.vy, x: s.x, y: CEIL_Y, pad: true }); s.vy = -s.vy * .42; } }
-    let touching = false;
-    const c0 = Math.floor((s.x - R) / B), c1 = Math.floor((s.x + R) / B), r0 = Math.floor((s.y - R - TOP) / B), r1 = Math.floor((s.y + R - TOP) / B);
-    for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) {
-      const b = solidAt(cs, s.broken, c, r); if (!b) continue;
-      const qx = s.x < b.x ? b.x : s.x > b.x + B ? b.x + B : s.x, qy = s.y < b.y ? b.y : s.y > b.y + B ? b.y + B : s.y;
+    // rolling friction: constant deceleration plus a little drag
+    let sp = Math.sqrt(s.vx * s.vx + s.vy * s.vy);
+    if (sp > 0) { const ns = Math.max(0, sp - (DECEL + DRAG * sp) * DT), k = ns / sp; s.vx *= k; s.vy *= k; sp = ns; }
+    s.x += s.vx * DT; s.y += s.vy * DT;
+    // the wooden frame around the green
+    if (s.x < R) bounce(s, 1, 0, R - s.x, E_RAIL, -1, 0, s.y);
+    if (s.x > W - R) bounce(s, -1, 0, s.x - (W - R), E_RAIL, -1, W, s.y);
+    if (s.y < R) bounce(s, 0, 1, R - s.y, E_RAIL, -1, s.x, 0);
+    if (s.y > H - R) bounce(s, 0, -1, s.y - (H - R), E_RAIL, -1, s.x, H);
+    // letter walls
+    const c0 = Math.floor((s.x - R) / B), c1 = Math.floor((s.x + R) / B), r0 = Math.floor((s.y - R) / B), r1 = Math.floor((s.y + R) / B);
+    for (let cy = r0; cy <= r1; cy++) for (let cx = c0; cx <= c1; cx++) {
+      if (cellKind(cs, s.broken, cx, cy) !== 'wall') continue;
+      const bx = cx * B, by = cy * B;
+      const qx = s.x < bx ? bx : s.x > bx + B ? bx + B : s.x, qy = s.y < by ? by : s.y > by + B ? by + B : s.y;
       let nx = s.x - qx, ny = s.y - qy; const d2 = nx * nx + ny * ny;
       if (d2 >= R * R) continue;
       let pen;
-      if (d2 > 1e-9) { const d = Math.sqrt(d2); nx /= d; ny /= d; pen = R - d; }
-      else { nx = 0; ny = -1; pen = R; }
-      // ignore faces shared with a neighbouring block, so the ball rolls smoothly over seams
-      if (nx < 0 && solidAt(cs, s.broken, c - 1, r)) nx = 0;
-      if (nx > 0 && solidAt(cs, s.broken, c + 1, r)) nx = 0;
-      if (ny < 0 && solidAt(cs, s.broken, c, r - 1)) ny = 0;
-      if (ny > 0 && solidAt(cs, s.broken, c, r + 1)) ny = 0;
-      const l = Math.sqrt(nx * nx + ny * ny); if (l < 1e-9) continue; nx /= l; ny /= l;
-      s.x += nx * pen; s.y += ny * pen; touching = true;
-      const vn = s.vx * nx + s.vy * ny;
-      if (vn < 0) {
-        const e = -vn > 90 ? .42 : 0;
-        s.vx -= (1 + e) * vn * nx; s.vy -= (1 + e) * vn * ny;
-        const tx = -ny, ty = nx, vt = s.vx * tx + s.vy * ty, f = 1 - 2.4 * DT;   // rolling friction
-        s.vx -= tx * vt * (1 - f); s.vy -= ty * vt * (1 - f);
-        if (-vn > 60) s.hits.push({ li: b.li, v: -vn, x: qx, y: qy, pad: b.pad });
-        if (!b.pad && cs.states[b.li] === 'brittle' && !s.broken[b.li]) { s.broken[b.li] = true; s.breakNow.push(b.li); }
-      }
+      if (d2 > 1e-9) { const d = Math.sqrt(d2); nx /= d; ny /= d; pen = R - d; } else { nx = 0; ny = -1; pen = R; }
+      if (nx < 0 && cellKind(cs, s.broken, cx - 1, cy) === 'wall') nx = 0;
+      if (nx > 0 && cellKind(cs, s.broken, cx + 1, cy) === 'wall') nx = 0;
+      if (ny < 0 && cellKind(cs, s.broken, cx, cy - 1) === 'wall') ny = 0;
+      if (ny > 0 && cellKind(cs, s.broken, cx, cy + 1) === 'wall') ny = 0;
+      const l = Math.sqrt(nx * nx + ny * ny); if (l < 1e-9) continue;
+      bounce(s, nx / l, ny / l, pen, E_TYPE, cs.cells.get(cx + ',' + cy).li, qx, qy);
     }
     s.n++;
-    const cup = cs.cup;
-    if (s.x > cup.x - 2 && s.x < cup.x + B + 2 && s.y > cup.y + 4 && s.y < cup.y + B + 2) s.done = 'sunk';
-    else if (s.y > PIT_Y) s.done = 'inked';
+    // cup: slow balls drop, fast ones lip out (deflected and slowed)
+    const dx = s.x - cs.cup.x, dy = s.y - cs.cup.y, dc2 = dx * dx + dy * dy;
+    if (dc2 < CUP_R * CUP_R) {
+      if (sp < CUP_MAXV) { s.done = 'sunk'; return s; }
+      if (!s.lip) { s.lip = true; const d = Math.sqrt(dc2) || 1, tx = -dy / d, ty = dx / d, f = .35 * (dx * s.vy - dy * s.vx > 0 ? 1 : -1);
+        s.vx = (s.vx + tx * f * sp) * .8; s.vy = (s.vy + ty * f * sp) * .8; s.hits.push({ li: -3, v: sp, x: s.x, y: s.y }); }
+    } else s.lip = false;
+    // ink: the ball's centre over a pit cell
+    if (cellKind(cs, s.broken, Math.floor(s.x / B), Math.floor(s.y / B)) === 'pit') { s.done = 'inked'; return s; }
+    if (sp < STOP) s.done = 'rest';
     else if (s.n >= MAX_STEPS) s.done = 'rest';
-    else if (touching && s.vx * s.vx + s.vy * s.vy < 64) { if (++s.still > 72) s.done = 'rest'; }
-    else s.still = 0;
     return s;
   }
 
@@ -148,6 +127,26 @@
     return { res: s.done, x: s.x, y: s.y, broken: s.broken, path, steps: s.n };
   }
 
-  const api = { B, COLS, W, H, TOP, R, G, DT, MAX_V, PIT_Y, CEIL_Y, FONT, letterX, seat, buildCourse, solidAt, start, step, shoot };
+  // fewest strokes the search can find (0 = none within maxStrokes). Ink returns the ball to where it was.
+  function solve(course, maxStrokes = 4, angStep = 6, keep = 10) {
+    let frontier = [{ x: course.tee.x, y: course.tee.y, broken: [false, false, false, false, false] }];
+    const powers = [110, 160, 220, 290, 370, 460, 560, 680];
+    for (let k = 1; k <= maxStrokes; k++) {
+      const next = new Map();
+      for (const st of frontier) for (let a = 0; a < 360; a += angStep) for (const p of powers) {
+        const r = a * Math.PI / 180, s = shoot(course, st.x, st.y, Math.cos(r) * p, Math.sin(r) * p, st.broken);
+        if (s.res === 'sunk') return k;
+        if (s.res !== 'rest') continue;
+        const key = Math.round(s.x / 10) + ',' + Math.round(s.y / 10) + s.broken.join('');
+        if (!next.has(key)) next.set(key, { x: s.x, y: s.y, broken: s.broken });
+      }
+      const cup = course.cup;
+      frontier = [...next.values()].sort((u, v) => ((u.x - cup.x) ** 2 + (u.y - cup.y) ** 2) - ((v.x - cup.x) ** 2 + (v.y - cup.y) ** 2)).slice(0, keep);
+      if (!frontier.length) return 0;
+    }
+    return 0;
+  }
+
+  const api = { W, H, B, R, DT, MAX_V, CUP_R, CUP_MAXV, FONT, BASE, snap, buildCourse, cellKind, start, step, shoot, solve };
   if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Putt = api;
 })(this);
