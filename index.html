@@ -31,6 +31,7 @@ button{font:inherit;color:inherit}
 
 main{max-width:560px;margin:0 auto;padding:18px 14px 40px}
 main.wide{max-width:640px}
+#hole .sub{margin:0 0 10px}
 #course{margin:0 auto}
 .card{background:var(--paper);border:2px solid var(--ink);box-shadow:5px 5px 0 var(--ink);position:relative}
 .cap{display:flex;justify-content:space-between;align-items:center;padding:7px 10px;border-bottom:2px solid var(--ink);font-size:10.5px;letter-spacing:2px;text-transform:uppercase;background:var(--paper2)}
@@ -91,7 +92,12 @@ main.wide{max-width:640px}
 .hud .st b{font:400 20px "Alfa Slab One",serif;margin:0 3px;vertical-align:-2px}
 .mini{display:flex;gap:3px}
 .mini i{width:20px;height:22px;border:2px solid var(--ink);font:400 11px/18px "Alfa Slab One",serif;font-style:normal;text-align:center;text-transform:uppercase}
-.mini .solid{background:var(--ink);color:var(--paper)}.mini .brittle{background:var(--ochre)}.mini .wire{background:#14203d;color:#8fb0ff}
+.mini .solid{background:var(--ink);color:var(--paper)}.mini .solid.rubber{background:var(--red)}.mini .brittle{background:var(--ochre)}.mini .wire{background:#14203d;color:#8fb0ff}
+.mini.italic i,.mini.bolditalic i{transform:skewX(-11deg)}.mini.bold i,.mini.bolditalic i{border-width:3px;line-height:16px}.mini.stencil i{border-style:dashed}
+.dh{display:inline-flex;gap:4px;margin-left:8px;vertical-align:1px}.dh i{width:11px;height:11px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid var(--red)}.dh i.on{background:var(--red)}
+#holeSub b,.facel b{color:var(--ink);font-weight:500}
+.facel{text-align:center;font-size:10.5px;letter-spacing:1.5px;text-transform:uppercase;color:var(--mute);margin:12px 0 -4px}
+.blanks.italic i,.blanks.bolditalic i{transform:skewX(-11deg)}.blanks.bold i,.blanks.bolditalic i{border-width:4px}.blanks.stencil i{border-style:dotted;border-width:3px}
 #course{display:block;width:100%;touch-action:none;cursor:crosshair}
 .hint{text-align:center;font-size:10.5px;letter-spacing:1.5px;text-transform:uppercase;color:var(--mute);margin:10px 0 0}
 .hstatus{min-height:26px;text-align:center;margin-top:8px}
@@ -144,7 +150,8 @@ main.wide{max-width:640px}
     </div>
     <div class="card today">
       <div class="trow"><span id="todayLbl">HOLE #1</span><button class="lnk" id="howBtn">HOW TO PLAY ↗</button></div>
-      <div class="blanks"><i>?</i><i>?</i><i>?</i><i>?</i><i>?</i></div>
+      <div class="facel" id="faceLbl"></div>
+      <div class="blanks" id="blanks"><i>?</i><i>?</i><i>?</i><i>?</i><i>?</i></div>
       <button class="cta" id="playBtn">⛳ TEE OFF</button>
       <div class="fine"><span id="hStreak"></span><span id="hNext" hidden>NEXT HOLE IN <b class="cd">--:--:--</b></span></div>
       <div class="row3"><button class="ghost" id="statsBtn">STATS</button><button class="ghost" id="practiceBtn">PRACTICE ∞</button><button class="ghost" id="howBtn2">HOW TO</button></div>
@@ -163,8 +170,9 @@ main.wide{max-width:640px}
   </section>
 
   <section id="hole" hidden>
+    <div class="sub" id="holeSub"></div>
     <div class="card">
-      <div class="hud"><span class="st">STROKES<b id="strokes">0</b>· PAR<b id="par">3</b></span><span class="mini" id="mini"></span></div>
+      <div class="hud"><span class="st">STROKES<b id="strokes">0</b>· PAR<b id="par">3</b><span class="dh" id="dotsH" title="ink dots: −1 stroke each"></span></span><span class="mini" id="mini"></span></div>
       <canvas id="course"></canvas>
     </div>
     <div class="hstatus" id="hstatus"></div>
@@ -201,6 +209,9 @@ const sfx={
   splash:()=>{noise(.35,.35,0,'lowpass',700);tone(220,.3,'sine',.08,0,.5)},
   lip:()=>{tone(520,.06,'square',.05);noise(.05,.2,0,'bandpass',1600)},
   cup:()=>{tone(700,.08,'sine',.12,0,.6);tone(420,.12,'sine',.1,.07,.6);noise(.06,.2,.1,'bandpass',900)},
+  boing:v=>{tone(190,.24,'sine',Math.min(.18,.06+v/4000),0,2.6);tone(380,.12,'triangle',.05,0,1.9)},
+  dot:()=>{tone(880,.07,'triangle',.1);tone(1320,.14,'triangle',.08,.06);noise(.04,.12,0,'highpass',3200)},
+  kern:()=>noise(.025,.14,0,'bandpass',900),
   win:()=>[0,4,7,12].forEach((s,i)=>tone(392*Math.pow(2,s/12),.25,'triangle',.12,i*.09))
 };
 
@@ -213,15 +224,16 @@ const dailyAnswer=ANSWERS[((num-1)%ANSWERS.length+ANSWERS.length)%ANSWERS.length
 const dayKey='tp-day-'+num;
 
 /* ---------- state ---------- */
-let mode='daily',answer=dailyAnswer,guesses=[],cur='',states=null,course=null,strokes=0,inked=0,ball=null,lastRest=null,broken=[false,false,false,false,false],done=false,sunk=false;
-function save(){if(mode!=='daily')return;store.set(dayKey,{guesses,strokes,inked,ball,lastRest,broken,done,sunk,stage:course?'hole':'word',par:course?holePar:0})}
+let mode='daily',answer=dailyAnswer,guesses=[],cur='',states=null,course=null,strokes=0,inked=0,ball=null,lastRest=null,broken=[false,false,false,false,false],done=false,sunk=false,kern=[0,0,0,0,0],dotsGot=[];
+function save(){if(mode!=='daily')return;store.set(dayKey,{guesses,strokes,inked,ball,lastRest,broken,kern,dotsGot,done,sunk,score:sunk?finalScore():0,stage:course?'hole':'word',par:course?holePar:0})}
 function show(id){['home','word','hole'].forEach(s=>$(s).hidden=s!==id);document.querySelector('main').classList.toggle('wide',id==='hole');$('modal').hidden=true;$('topNum').textContent=mode==='practice'&&id!=='home'?'PRACTICE':DAYTXT;scrollTo(0,0);if(id==='hole')fit()}
 
 /* ---------- home ---------- */
 function home(){
   show('home');const rec=store.get(dayKey),st=store.get('tp-stats');
   $('todayLbl').textContent=`HOLE #${num} · ${DOW[now.getDay()]} ${MON[now.getMonth()]} ${now.getDate()}`;
-  $('playBtn').textContent=rec&&rec.done?`✓ DONE · ${rec.strokes} STROKES`:rec&&rec.guesses&&rec.guesses.length?'▶ CONTINUE':'⛳ TEE OFF';
+  const sty=layoutFor(dailyAnswer).style,f=FACES[sty]||FACES.regular;$('faceLbl').innerHTML=`<b>${f[0]} ${DAYNAME[now.getDay()]}</b> · ${f[1]}`;$('blanks').className='blanks '+sty;
+  $('playBtn').textContent=rec&&rec.done?(rec.sunk?`✓ DONE · SCORE ${rec.score||rec.strokes}`:'✓ DONE · PICKED UP'):rec&&rec.guesses&&rec.guesses.length?'▶ CONTINUE':'⛳ TEE OFF';
   $('hNext').hidden=!(rec&&rec.done);
   const streak=st&&(st.last===num||st.last===num-1)?st.streak:0;$('hStreak').textContent=streak?`STREAK ${streak}`:'';
 }
@@ -260,16 +272,21 @@ function finishWord(){
   wordMsg(solved?['Set in one!','Typeset!','Nicely set.'][guesses.length-1]:`The word was ${answer.toUpperCase()}`);
   const rv=$('reveal');rv.hidden=false;
   rv.innerHTML=`<div class="ans">${[...answer].map((c,i)=>`<div class="tile ${states[i]==='solid'?'g':states[i]==='brittle'?'y':'b'}" style="animation-delay:${i*.12}s">${c}</div>`).join('')}</div>
-   <div class="legend"><span><i style="background:var(--ink)"></i>wall</span><span><i style="background:var(--ochre)"></i>brittle · 1 hit, then ink</span><span><i style="background:#14203d"></i>missed · ink pit</span></div>
+   <div class="legend"><span><i style="background:var(--ink)"></i>wall</span><span><i style="background:var(--red)"></i>vowel wall · rubber</span><span><i style="background:var(--ochre)"></i>brittle · 1 hit, then ink</span><span><i style="background:#14203d"></i>missed · ink pit</span></div>
    <div style="padding:0 14px 6px"><button class="cta" id="buildBtn">⛳ SET THE COURSE</button></div>`;
   $('buildBtn').onclick=()=>startHole(true);save();
 }
 
 /* ---------- hole (top-down green) ---------- */
 const cv=$('course'),ctx=cv.getContext('2d'),LAYOUTS=window.TP_LAYOUTS||{};
-let scale=1,dpr=1,feltC=null,stainC=null,sim=null,acc=0,lastT=0,aim=null,particles=[],wob=[0,0,0,0,0],slamT=0,flagT=0,lastTick=-1,holePar=3;
-function layoutFor(w){const l=LAYOUTS[w];return l?{L:l[0],tee:l[1],cup:l[2]}:P.BASE}
-function fit(){const avail=Math.max(260,innerHeight-210),w=Math.min($('hole').clientWidth||innerWidth-28,avail*P.W/P.H+4,620);dpr=Math.min(2,devicePixelRatio||1);scale=(w-4)/P.W;
+// the typeface of the day (tools/layouts.js sets one per daily answer, by weekday)
+const FACES={regular:['ROMAN','plain upright type'],italic:['ITALIC','leaning letters give angled banks'],bold:['BOLD','thick walls, tight gaps'],stencil:['STENCIL','gaps in the strokes you can slip through'],bolditalic:['BOLD ITALIC','the Sunday special: thick and leaning']};
+const DAYNAME=['SUNDAY','MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY'],KERN_MAX=27;
+let scale=1,dpr=1,feltC=null,stainC=null,sim=null,acc=0,lastT=0,aim=null,kd=null,particles=[],wob=[0,0,0,0,0],slamT=0,flagT=0,lastTick=-1,holePar=3,lay=null,course0=null,styleOverride=null;
+function layoutFor(w){const l=LAYOUTS[w],b=l?{L:l.L,tee:l.tee,cup:l.cup,style:l.style||'regular',dots:l.dots||[],hills:l.hills||[]}:{...P.BASE};if(styleOverride&&!l)b.style=styleOverride;return b}
+const isRubber=li=>!!states&&states[li]==='solid'&&P.VOWELS.has(answer[li].toUpperCase());
+const dotsN=()=>dotsGot.filter(Boolean).length,finalScore=()=>Math.max(1,strokes-dotsN());
+function fit(){const avail=Math.max(260,innerHeight-236),w=Math.min($('hole').clientWidth||innerWidth-28,avail*P.W/P.H+4,620);dpr=Math.min(2,devicePixelRatio||1);scale=(w-4)/P.W;
   cv.width=Math.round(P.W*scale*dpr);cv.height=Math.round(P.H*scale*dpr);cv.style.width=Math.round(P.W*scale)+'px';cv.style.height=Math.round(P.H*scale)+'px';
   const card=cv.closest('.card');card.style.maxWidth=(Math.round(P.W*scale)+4)+'px';card.style.margin='0 auto'}
 addEventListener('resize',()=>{if(!$('hole').hidden)fit()});
@@ -279,55 +296,109 @@ function makeFelt(){
   for(let i=-P.H;i<P.W;i+=36){x.fillStyle='#ffffff0d';x.beginPath();x.moveTo(i,0);x.lineTo(i+18,0);x.lineTo(i+18+P.H*.5,P.H);x.lineTo(i+P.H*.5,P.H);x.fill()}
   let a=7;const r=()=>(a=a*16807%2147483647)/2147483647;
   for(let i=0;i<2600;i++){x.fillStyle=r()<.5?'rgba(0,0,0,.07)':'rgba(255,255,255,.06)';x.fillRect(r()*P.W,r()*P.H,1,1+r()*2)}
+  // the day's warp in the paper: lit from the top left (slopes facing away are darker, rises a touch
+  // lighter), plus little chevrons that point downhill
+  const hl=course.hills;
+  if(hl.length){
+    const ov=document.createElement('canvas');ov.width=P.W/2;ov.height=P.H/2;const ox=ov.getContext('2d'),im=ox.createImageData(ov.width,ov.height),D=im.data;
+    for(let j=0;j<ov.height;j++)for(let i=0;i<ov.width;i++){const wx=i*2+1,wy=j*2+1,[ax,ay]=P.slopeAt(hl,wx,wy);let h=0;
+      for(const[hx,hy,rr,A]of hl){const d2=(wx-hx)**2+(wy-hy)**2;if(d2<rr*rr){const q=1-d2/(rr*rr);h+=A*.65*rr*q*q}}
+      const s=-(ax+ay)/300+h/80000,o=(j*ov.width+i)*4;
+      if(s>0){D[o]=255;D[o+1]=250;D[o+2]=215;D[o+3]=Math.min(.26,s)*255}else{D[o]=0;D[o+1]=24;D[o+2]=12;D[o+3]=Math.min(.34,-s)*255}}
+    ox.putImageData(im,0,0);x.imageSmoothingEnabled=true;x.drawImage(ov,0,0,P.W,P.H);
+    x.lineCap='round';x.lineJoin='round';x.lineWidth=1.5;
+    for(let gy=26,row=0;gy<P.H;gy+=38,row++)for(let gx=row%2?40:21;gx<P.W;gx+=38){const[ax,ay]=P.slopeAt(hl,gx,gy),m=Math.hypot(ax,ay);if(m<34)continue;
+      const ux=ax/m,uy=ay/m,len=3.5+Math.min(3.5,(m-34)/22),px=-uy,py=ux;x.strokeStyle=`rgba(255,252,235,${Math.min(.5,.2+m/400)})`;
+      x.beginPath();x.moveTo(gx-ux*len+px*len*.62,gy-uy*len+py*len*.62);x.lineTo(gx+ux*len*.5,gy+uy*len*.5);x.lineTo(gx-ux*len-px*len*.62,gy-uy*len-py*len*.62);x.stroke()}
+  }
   stainC=document.createElement('canvas');stainC.width=P.W*2;stainC.height=P.H*2;stainC.getContext('2d').scale(2,2);
 }
-// par: the solver's best for this exact course, plus one
-function computePar(){const n=P.solve(course,4,8,8);return n?Math.min(6,n+1):5}
+// par: the solver's best for this exact course (before any kerning), plus one
+function computePar(c){const n=P.solve(c,4,8,8);return n?Math.min(6,n+1):5}
 function startHole(animate){
-  states=states||computeStates();course=P.buildCourse(answer,states,layoutFor(answer));
-  holePar=(mode==='daily'&&store.get(dayKey)&&store.get(dayKey).par)||computePar();
-  $('par').textContent=holePar;$('strokes').textContent=strokes;
-  $('mini').innerHTML=[...answer].map((c,i)=>`<i class="${states[i]}">${c}</i>`).join('');
+  states=states||computeStates();lay=layoutFor(answer);course0=P.buildCourse(answer,states,lay);
+  const rec=mode==='daily'&&store.get(dayKey);holePar=(rec&&rec.par)||computePar(course0);
+  course=kern.some(Boolean)?P.buildCourse(answer,states,lay,kern):course0;
+  if(dotsGot.length!==course.dots.length)dotsGot=course.dots.map(()=>false);
+  $('par').textContent=holePar;$('strokes').textContent=strokes;paintDots();
+  $('mini').className='mini '+course.style;
+  $('mini').innerHTML=[...answer].map((c,i)=>`<i class="${states[i]}${isRubber(i)?' rubber':''}">${c}</i>`).join('');
+  const f=FACES[course.style]||FACES.regular;$('holeSub').innerHTML=`<b>${mode==='daily'?f[0]+' '+DAYNAME[now.getDay()]:f[0]}</b> · ${f[1]}`;
   if(!ball){ball={x:course.tee.x,y:course.tee.y};lastRest={...ball}}
   show('hole');makeFelt();particles=[];wob=[0,0,0,0,0];
   slamT=animate?performance.now():0;if(animate)[0,1,2,3,4].forEach(i=>setTimeout(()=>sfx.slam(i),150+i*130));
-  hstatus(done?(sunk?'in the cup':''):'');save();
+  hstatus(done?(sunk?'in the cup':''):'');hint();save();
   if(done)setTimeout(()=>result(true),400);
 }
-function parFor(){return holePar}
 function hstatus(t,c){$('hstatus').innerHTML=t?`<span class="${c||''}">${esc(t)}</span>`:''}
+function hint(){$('hint').textContent=done?'':canKern()?'Kern first: slide a solid letter ↔ · then drag back anywhere to putt':'Drag back anywhere to aim · let go to putt'}
+function paintDots(){$('dotsH').innerHTML=course.dots.map((d,i)=>`<i class="${dotsGot[i]?'on':''}"></i>`).join('');$('dotsH').hidden=!course.dots.length}
+
+/* kerning: before the first putt, solid letters slide sideways (up to 1.5 cells) */
+function canKern(){return !!course&&!sim&&!done&&strokes===0&&states.some(s=>s==='solid')}
+function ext(L){return{ex:Math.abs(L.co)*L.lw/2+Math.abs(L.si)*L.lh/2,ey:Math.abs(L.si)*L.lw/2+Math.abs(L.co)*L.lh/2}}
+function gap(a,b){const A=ext(a),C=ext(b);return Math.max(Math.abs(a.cx-b.cx)-A.ex-C.ex,Math.abs(a.cy-b.cy)-A.ey-C.ey)}
+function nearCell(L,x,y,r){const p=P.toLocal(L,x,y),B=P.B;
+  for(let rr=Math.floor((p.y-r)/B);rr<=Math.floor((p.y+r)/B);rr++)for(let c=Math.floor((p.x-r)/B);c<=Math.floor((p.x+r)/B);c++){
+    if(!L.cells.has(c+','+rr))continue;const qx=Math.max(c*B,Math.min(p.x,c*B+B)),qy=Math.max(rr*B,Math.min(p.y,rr*B+B));if((p.x-qx)**2+(p.y-qy)**2<r*r)return true}
+  return false}
+function kernOK(c,li){const L=c.letters[li],L0=course0.letters[li],e=ext(L),edge=Math.min(L.cx-e.ex,P.W-L.cx-e.ex),e0=Math.min(L0.cx-e.ex,P.W-L0.cx-e.ex);
+  if(edge<6&&edge<e0)return false;
+  for(const M of c.letters)if(M!==L){const g=gap(L,M);if(g<8&&g<gap(L0,course0.letters[M.li]))return false}
+  const pts=[[ball.x,ball.y,P.R+3],[c.tee.x,c.tee.y,P.R+3],...c.dots.map(d=>[d.x,d.y,P.DOT_R+3])];if(c.cup.li!==li)pts.push([c.cup.x,c.cup.y,P.CUP_R+3]);
+  return !pts.some(([x,y,r])=>nearCell(L,x,y,r))}
+function slideKern(li,target){let cur=kern[li];const dir=Math.sign(target-cur);if(!dir)return;
+  while(cur!==target){const k2=kern.slice();k2[li]=cur+dir;if(!kernOK(P.buildCourse(answer,states,lay,k2),li))break;cur+=dir}
+  if(cur===kern[li])return;if(Math.floor(cur/6)!==Math.floor(kern[li]/6))sfx.kern();kern[li]=cur;course=P.buildCourse(answer,states,lay,kern)}
+function worldPt(e){const r=cv.getBoundingClientRect();return{x:(e.clientX-r.left)*P.W/r.width,y:(e.clientY-r.top)*P.H/r.height}}
+function letterAt(x,y){for(const L of course.letters){if(states[L.li]!=='solid')continue;const p=P.toLocal(L,x,y);if(p.x>-6&&p.y>-6&&p.x<L.lw+6&&p.y<L.lh+6)return L}return null}
+
 const SHOT_K=4.6;
-cv.addEventListener('pointerdown',e=>{if(sim||done||!course)return;A();aim={sx:e.clientX,sy:e.clientY,vx:0,vy:0};try{cv.setPointerCapture(e.pointerId)}catch(_){}});
-cv.addEventListener('pointermove',e=>{if(!aim)return;const r=cv.getBoundingClientRect(),k=P.W/r.width;
+cv.addEventListener('pointerdown',e=>{if(sim||done||!course)return;A();
+  if(canKern()){const p=worldPt(e),L=letterAt(p.x,p.y);if(L){kd={li:L.li,sx:e.clientX,k0:kern[L.li]};try{cv.setPointerCapture(e.pointerId)}catch(_){}hstatus('kerning '+L.ch+' ↔');return}}
+  aim={sx:e.clientX,sy:e.clientY,vx:0,vy:0};try{cv.setPointerCapture(e.pointerId)}catch(_){}});
+cv.addEventListener('pointermove',e=>{
+  if(kd){const r=cv.getBoundingClientRect();slideKern(kd.li,Math.max(-KERN_MAX,Math.min(KERN_MAX,Math.round(kd.k0+(e.clientX-kd.sx)*P.W/r.width))));return}
+  if(!aim){if(course){const p=worldPt(e);cv.style.cursor=canKern()&&letterAt(p.x,p.y)?'ew-resize':'crosshair'}return}
+  const r=cv.getBoundingClientRect(),k=P.W/r.width;
   let vx=(aim.sx-e.clientX)*k*SHOT_K,vy=(aim.sy-e.clientY)*k*SHOT_K;const sp=Math.hypot(vx,vy);if(sp>P.MAX_V){vx*=P.MAX_V/sp;vy*=P.MAX_V/sp}aim.vx=vx;aim.vy=vy;
   const p=Math.min(1,Math.hypot(vx,vy)/P.MAX_V),q=Math.round(p*12);if(q!==lastTick){lastTick=q;sfx.tick(p)}});
-function release(){if(!aim)return;const a=aim;aim=null;lastTick=-1;if(Math.hypot(a.vx,a.vy)<30)return;
-  strokes++;$('strokes').textContent=strokes;hstatus('');sfx.putt();sim=P.start(course,ball.x,ball.y,a.vx,a.vy,broken);acc=0}
-cv.addEventListener('pointerup',release);cv.addEventListener('pointercancel',()=>{aim=null});
+function release(){
+  if(kd){kd=null;hstatus('');save();return}
+  if(!aim)return;const a=aim;aim=null;lastTick=-1;if(Math.hypot(a.vx,a.vy)<30)return;
+  strokes++;$('strokes').textContent=strokes;hstatus('');hint();sfx.putt();sim=P.start(course,ball.x,ball.y,a.vx,a.vy,broken,dotsGot);acc=0}
+cv.addEventListener('pointerup',release);cv.addEventListener('pointercancel',()=>{aim=null;if(kd){kd=null;save()}});
 
 function onHit(h){
   if(h.li===-3){sfx.lip();hstatus('lipped out · too fast');return}
-  if(h.li>=0)wob[h.li]=Math.min(1,wob[h.li]+h.v/500);sfx.wood(h.v);
+  if(h.li>=0)wob[h.li]=Math.min(1,wob[h.li]+h.v/500);
+  if(h.rubber){sfx.boing(h.v);particles.push({k:'ring',x:h.x,y:h.y,vx:0,vy:0,life:.45,r:0});return}
+  sfx.wood(h.v);
   if(h.v>260)for(let i=0;i<5;i++)particles.push({k:'chip',x:h.x,y:h.y,vx:(Math.random()-.5)*160,vy:(Math.random()-.5)*160,life:.5,r:1.5+Math.random()*1.5})}
-function shatter(li){sfx.crack();course.blocks.filter(b=>b.li===li).forEach(b=>{for(let i=0;i<2;i++)particles.push({k:'shard',x:b.x+Math.random()*P.B,y:b.y+Math.random()*P.B,vx:(Math.random()-.5)*180,vy:(Math.random()-.5)*180,life:.9,r:3+Math.random()*3,rot:Math.random()*6})})}
+function gotDot(i){dotsGot[i]=true;sfx.dot();const d=course.dots[i];paintDots();
+  for(let j=0;j<14;j++)particles.push({k:'ink',c:RED,x:d.x,y:d.y,vx:(Math.random()-.5)*200,vy:(Math.random()-.5)*200,life:.4+Math.random()*.4,r:1.2+Math.random()*2});
+  particles.push({k:'txt',x:d.x,y:d.y-12,vx:0,vy:-70,life:1.1,s:'−1'});hstatus('ink dot · −1 stroke','good')}
+function shatter(li){sfx.crack();const L=course.letters[li];
+  for(const key of L.cells){const[c,r]=key.split(',').map(Number),w=P.toWorld(L,(c+.5)*P.B,(r+.5)*P.B);
+    for(let i=0;i<2;i++)particles.push({k:'shard',x:w.x+(Math.random()-.5)*P.B,y:w.y+(Math.random()-.5)*P.B,vx:(Math.random()-.5)*180,vy:(Math.random()-.5)*180,life:.9,r:3+Math.random()*3,rot:Math.random()*6})}}
 function endShot(res){
-  const s=sim;sim=null;broken=s.broken.slice();
+  const s=sim;sim=null;broken=s.broken.slice();dotsGot=s.dots.slice();paintDots();
   if(res==='sunk'){ball={x:course.cup.x,y:course.cup.y};sunk=true;done=true;sfx.cup();setTimeout(sfx.win,250);flagT=performance.now();
     for(let i=0;i<50;i++)particles.push({k:'conf',x:course.cup.x,y:course.cup.y,vx:(Math.random()-.5)*340,vy:(Math.random()-.5)*340,life:1.3,c:[RED,'#fff',OCHRE,BLUE][i%4],rot:Math.random()*6});
-    hstatus(strokes===1?'hole in one!':'in the cup','good');finishDay();setTimeout(()=>result(false),1300)}
+    hstatus(strokes===1?'hole in one!':dotsN()?`in the cup · score ${finalScore()}`:'in the cup','good');finishDay();setTimeout(()=>result(false),1300)}
   else if(res==='inked'){inked++;strokes++;$('strokes').textContent=strokes;sfx.splash();
     for(let i=0;i<16;i++)particles.push({k:'ink',x:s.x,y:s.y,vx:(Math.random()-.5)*220,vy:(Math.random()-.5)*220,life:.6+Math.random()*.4,r:1.5+Math.random()*2.5});
     hstatus('inked! +1 stroke','bad');ball={...lastRest}}
   else{ball={x:s.x,y:s.y};lastRest={...ball}}
   if(!done&&strokes>=10){done=true;hstatus('picked up · 10 strokes','bad');finishDay();setTimeout(()=>result(false),900)}
-  save();
+  hint();save();
 }
 function tick(t){
   const dt=Math.min(.05,(t-(lastT||t))/1000);lastT=t;
-  if(sim){acc+=dt;let n=0;while(acc>=P.DT&&!sim.done&&n<60){P.step(sim);acc-=P.DT;n++;for(const h of sim.hits)onHit(h);for(const li of sim.breakNow)shatter(li)}
+  if(sim){acc+=dt;let n=0;while(acc>=P.DT&&!sim.done&&n<60){P.step(sim);acc-=P.DT;n++;for(const h of sim.hits)onHit(h);for(const li of sim.breakNow)shatter(li);for(const i of sim.dotsNow)gotDot(i)}
     if(sim.done)endShot(sim.done)}
-  for(const p of particles){const f=Math.pow(.05,dt);p.vx*=f;p.vy*=f;p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;if(p.rot!==undefined)p.rot+=dt*8;
-    if(p.k==='ink'&&p.life<=0&&stainC){const x=stainC.getContext('2d');x.fillStyle='#14121055';x.beginPath();x.arc(p.x,p.y,p.r*1.3,0,7);x.fill()}}
+  for(const p of particles){const f=Math.pow(.05,dt);p.vx*=f;p.vy*=f;p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt;if(p.rot!==undefined)p.rot+=dt*8;if(p.k==='ring')p.r+=dt*70;
+    if(p.k==='ink'&&p.life<=0&&stainC){const x=stainC.getContext('2d');x.fillStyle=p.c?p.c+'55':'#14121055';x.beginPath();x.arc(p.x,p.y,p.r*1.3,0,7);x.fill()}}
   particles=particles.filter(p=>p.life>0);
   for(let i=0;i<5;i++)wob[i]*=Math.pow(.02,dt);
   if(!$('hole').hidden&&course)draw(t);
@@ -335,31 +406,47 @@ function tick(t){
 }
 
 /* ---------- drawing ---------- */
+function tri(x,y,d){ctx.beginPath();ctx.moveTo(x+d*6,y);ctx.lineTo(x-d,y-6);ctx.lineTo(x-d,y+6);ctx.fill()}
+function drop(x,y,s){ctx.beginPath();ctx.moveTo(x,y-s*1.55);ctx.bezierCurveTo(x+s*.5,y-s*.9,x+s,y-s*.35,x+s,y+.1*s);ctx.arc(x,y+.1*s,s,0,Math.PI);ctx.bezierCurveTo(x-s,y-s*.35,x-s*.5,y-s*.9,x,y-s*1.55);ctx.fill()}
 function draw(t){
   const k=scale*dpr,B=P.B;ctx.setTransform(k,0,0,k,0,0);ctx.clearRect(0,0,P.W,P.H);
   ctx.drawImage(feltC,0,0,P.W,P.H);ctx.drawImage(stainC,0,0,P.W,P.H);
-  // letters: walls are raised wood type, pits are wet ink sunk into the green
+  // ink dots to collect: red droplets with a slow pulse
+  course.dots.forEach((d,i)=>{if(dotsGot[i])return;const pu=1+Math.sin(t/320+i*2)*.14;
+    ctx.strokeStyle='#fffaf066';ctx.lineWidth=1.4;ctx.beginPath();ctx.arc(d.x,d.y,(P.DOT_R+5)*pu,0,7);ctx.stroke();
+    ctx.fillStyle='#00000040';drop(d.x+1.5,d.y+2.5,P.DOT_R*.9);ctx.fillStyle=RED;drop(d.x,d.y+1,P.DOT_R*.9);
+    ctx.fillStyle='#ffffffb0';ctx.beginPath();ctx.arc(d.x-1.8,d.y,1.5,0,7);ctx.fill()});
+  // letters, each drawn in its own (possibly tilted) frame: raised wood type, rubber vowels, or wet ink
   for(let li=0;li<5;li++){
-    const st=states[li],pit=st==='wire'||(st==='brittle'&&broken[li]),bl=course.blocks.filter(b=>b.li===li);
+    const L=course.letters[li],st=states[li],pit=st==='wire'||(st==='brittle'&&broken[li]),rub=!pit&&isRubber(li);
     const ap=slamT?Math.max(0,Math.min(1,((t-slamT)/140-li)/1.6)):1;if(ap<=0)continue;
-    const w=wob[li],dx=Math.sin(t/26)*w*2.5,cx=bl.reduce((a,b)=>a+b.x,0)/bl.length+B/2,cy=bl.reduce((a,b)=>a+b.y,0)/bl.length+B/2,sc=1+(1-ap)*.6;
-    ctx.save();ctx.globalAlpha=ap;ctx.translate(cx+dx,cy);ctx.scale(sc,sc);ctx.translate(-cx,-cy);
+    const w=wob[li],dx=rub?0:Math.sin(t/26)*w*2.5,sc=(1+(1-ap)*.6)*(rub?1+w*.08:1),cells=[...L.cells].map(s=>s.split(',').map(Number)),has=(c,r)=>L.cells.has(c+','+r);
+    const so=(ox,oy)=>[ox*L.co+oy*L.si,-ox*L.si+oy*L.co];   // a world-space offset expressed in the letter's frame
+    ctx.save();ctx.globalAlpha=ap;ctx.translate(L.cx+dx,L.cy);ctx.scale(sc,sc);ctx.transform(L.co,L.si,-L.si,L.co,0,0);ctx.translate(-L.lw/2,-L.lh/2);
     if(pit){
-      // wet ink sunk into the green: dark rim, navy pool, drifting shine
-      ctx.fillStyle='#1f3a29';for(const b of bl)ctx.fillRect(b.x-1.5,b.y-1.5,B+3,B+3);
-      ctx.fillStyle='#14203d';for(const b of bl)ctx.fillRect(b.x,b.y,B,B);
-      ctx.fillStyle='#0008';for(const b of bl){if(!course.cells.has(b.cx+','+(b.cy-1)))ctx.fillRect(b.x,b.y,B,4);if(!course.cells.has((b.cx-1)+','+b.cy))ctx.fillRect(b.x,b.y,3,B)}
-      ctx.fillStyle='#8fb0ff38';for(const b of bl)if((b.cx*3+b.cy)%3===0)ctx.fillRect(b.x+4+Math.sin(t/700+b.cy)*3,b.y+B*.55,7,1.5);
+      ctx.fillStyle='#1f3a29';for(const[c,r]of cells)ctx.fillRect(c*B-1.5,r*B-1.5,B+3,B+3);
+      ctx.fillStyle='#14203d';for(const[c,r]of cells)ctx.fillRect(c*B,r*B,B,B);
+      ctx.fillStyle='#0008';for(const[c,r]of cells){if(!has(c,r-1))ctx.fillRect(c*B,r*B,B,4);if(!has(c-1,r))ctx.fillRect(c*B,r*B,3,B)}
+      ctx.fillStyle='#8fb0ff38';for(const[c,r]of cells)if((c*3+r)%3===0)ctx.fillRect(c*B+4+Math.sin(t/700+r)*3,r*B+B*.55,7,1.5);
     }else{
-      const face=st==='solid'?INK:OCHRE,side=st==='solid'?WOODD:'#a0731c';
-      ctx.fillStyle='#00000040';for(const b of bl)ctx.fillRect(b.x+4,b.y+5,B,B);
-      ctx.fillStyle=side;for(const b of bl)ctx.fillRect(b.x+2,b.y+2.5,B,B);
-      ctx.fillStyle=face;for(const b of bl)ctx.fillRect(b.x,b.y,B,B);
-      ctx.fillStyle=st==='solid'?'#ffffff1c':'#fff3';for(const b of bl)if(!course.cells.has(b.cx+','+(b.cy-1)))ctx.fillRect(b.x+1,b.y+1,B-2,2);
-      if(st==='brittle'){ctx.strokeStyle='#5a3d0a';ctx.lineWidth=1;for(const b of bl){if((b.cx+b.cy)%3)continue;ctx.beginPath();ctx.moveTo(b.x+3,b.y+2);ctx.lineTo(b.x+7,b.y+7);ctx.lineTo(b.x+5,b.y+12);ctx.moveTo(b.x+7,b.y+7);ctx.lineTo(b.x+12,b.y+6);ctx.stroke()}}
+      const face=rub?RED:st==='solid'?INK:OCHRE,side=rub?'#8e2414':st==='solid'?WOODD:'#a0731c';
+      let[sx,sy]=so(4,5);ctx.fillStyle='#00000040';for(const[c,r]of cells)ctx.fillRect(c*B+sx,r*B+sy,B,B);
+      [sx,sy]=so(2,2.5);ctx.fillStyle=side;for(const[c,r]of cells)ctx.fillRect(c*B+sx,r*B+sy,B,B);
+      ctx.fillStyle=face;for(const[c,r]of cells)ctx.fillRect(c*B,r*B,B,B);
+      ctx.fillStyle=rub?'#ffffff55':st==='solid'?'#ffffff1c':'#fff3';for(const[c,r]of cells)if(!has(c,r-1))ctx.fillRect(c*B+1,r*B+1,B-2,2);
+      if(rub){ctx.fillStyle='#ffffff22';for(const[c,r]of cells)if(!has(c-1,r))ctx.fillRect(c*B+1,r*B+1,2,B-2);
+        ctx.fillStyle='#00000026';for(const[c,r]of cells)if(!has(c,r+1))ctx.fillRect(c*B+1,r*B+B-3,B-2,2);
+        if(w>.04){ctx.fillStyle=`rgba(255,236,214,${Math.min(.55,w*.8)})`;for(const[c,r]of cells)ctx.fillRect(c*B,r*B,B,B)}}
+      if(st==='brittle'){ctx.strokeStyle='#5a3d0a';ctx.lineWidth=1;for(const[c,r]of cells){if((c+r)%3)continue;const bx=c*B,by=r*B;ctx.beginPath();ctx.moveTo(bx+3,by+2);ctx.lineTo(bx+7,by+7);ctx.lineTo(bx+5,by+12);ctx.moveTo(bx+7,by+7);ctx.lineTo(bx+12,by+6);ctx.stroke()}}
     }
     ctx.restore();
   }
+  // kerning handles on solid letters before the first putt
+  if(canKern()){const a=.7+.25*Math.sin(t/260);
+    for(const L of course.letters){if(states[L.li]!=='solid')continue;const e=ext(L);
+      if(kd&&kd.li===L.li){ctx.strokeStyle='#fffaf0cc';ctx.lineWidth=1.5;ctx.setLineDash([4,3]);ctx.strokeRect(L.cx-e.ex-3,L.cy-e.ey-3,e.ex*2+6,e.ey*2+6);ctx.setLineDash([])}
+      const on=kd&&kd.li===L.li,lx=Math.max(9,L.cx-e.ex-6),rx=Math.min(P.W-9,L.cx+e.ex+6);
+      ctx.fillStyle='#00000055';tri(lx+1,L.cy+1.5,-1);tri(rx+1,L.cy+1.5,1);ctx.fillStyle=`rgba(255,250,240,${on?1:a})`;tri(lx,L.cy,-1);tri(rx,L.cy,1)}}
   // wooden rail round the green
   ctx.strokeStyle=WOODD;ctx.lineWidth=6;ctx.strokeRect(3,3,P.W-6,P.H-6);ctx.strokeStyle=WOOD;ctx.lineWidth=3;ctx.strokeRect(3,3,P.W-6,P.H-6);
   // tee marker
@@ -374,7 +461,7 @@ function draw(t){
     ctx.fillStyle=RED;ctx.beginPath();ctx.moveTo(C.x+4,C.y-34-lift);ctx.lineTo(C.x+28,C.y-28-lift+wv);ctx.lineTo(C.x+5,C.y-20-lift);ctx.fill()}
   // aim: a short predicted path plus a power ring
   if(aim&&ball&&Math.hypot(aim.vx,aim.vy)>20){
-    const s=P.start(course,ball.x,ball.y,aim.vx,aim.vy,broken),pw=Math.hypot(aim.vx,aim.vy)/P.MAX_V;ctx.fillStyle='#fffaf0';
+    const s=P.start(course,ball.x,ball.y,aim.vx,aim.vy,broken,dotsGot),pw=Math.hypot(aim.vx,aim.vy)/P.MAX_V;ctx.fillStyle='#fffaf0';
     for(let i=0;i<84&&!s.done;i++){P.step(s);if(i%5===0){ctx.globalAlpha=1-i/90;ctx.beginPath();ctx.arc(s.x,s.y,2,0,7);ctx.fill()}}
     ctx.globalAlpha=1;ctx.strokeStyle='#ffffff55';ctx.lineWidth=3;ctx.beginPath();ctx.arc(ball.x,ball.y,14,0,7);ctx.stroke();
     ctx.strokeStyle=pw>.85?RED:pw>.5?OCHRE:'#fffaf0';ctx.beginPath();ctx.arc(ball.x,ball.y,14,-Math.PI/2,-Math.PI/2+pw*Math.PI*2);ctx.stroke();
@@ -386,16 +473,19 @@ function draw(t){
     ctx.fillStyle='#d6cfbf';ctx.fillRect(bx-1.5,by-.5,1,1);ctx.fillRect(bx+1,by+1,1,1)}
   // particles
   for(const p of particles){ctx.globalAlpha=Math.max(0,Math.min(1,p.life*2));
-    if(p.k==='ink'||p.k==='chip'){ctx.fillStyle=p.k==='ink'?'#15120f':WOOD;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,7);ctx.fill()}
+    if(p.k==='ink'||p.k==='chip'){ctx.fillStyle=p.k==='ink'?(p.c||'#15120f'):WOOD;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,7);ctx.fill()}
+    else if(p.k==='ring'){ctx.strokeStyle='#ffe3d6';ctx.lineWidth=2;ctx.beginPath();ctx.arc(p.x,p.y,4+p.r,0,7);ctx.stroke()}
+    else if(p.k==='txt'){ctx.font='400 15px "Alfa Slab One",serif';ctx.textAlign='center';ctx.lineWidth=3;ctx.strokeStyle=PAPER;ctx.strokeText(p.s,p.x,p.y);ctx.fillStyle=RED;ctx.fillText(p.s,p.x,p.y);ctx.textAlign='start'}
     else{ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.rot);ctx.fillStyle=p.k==='shard'?OCHRE:p.c;ctx.fillRect(-p.r/2||-3,-2,p.r||6,p.k==='shard'?p.r:3);ctx.restore()}}
   ctx.globalAlpha=1;
 }
 
 /* ---------- results, stats ---------- */
-function vsPar(){return strokes-holePar}
+function vsPar(){return finalScore()-holePar}
+const titleCase=t=>t.split(' ').map(w=>w[0]+w.slice(1).toLowerCase()).join(' ');
 function gradeName(){if(!sunk)return'PICKED UP';if(strokes===1)return'HOLE IN ONE!';const d=vsPar();return d<=-3?'ALBATROSS!':d===-2?'EAGLE!':d===-1?'BIRDIE!':d===0?'PAR.':d===1?'BOGEY.':d===2?'DOUBLE BOGEY.':'TRIPLE BOGEY+'}
-function shareText(){const row=states.map(s=>s==='solid'?'🟩':s==='brittle'?'🟨':'⬛').join('');
-  return `${mode==='daily'?'Type-Putt #'+num:'Type-Putt practice'} | Word: ${row} | Hole: ${sunk?strokes:'10+'} Stroke${strokes===1?'':'s'} (Par ${parFor(states)}) ⛳`}
+function shareText(){const row=states.map(s=>s==='solid'?'🟩':s==='brittle'?'🟨':'⬛').join(''),f=titleCase((FACES[course&&course.style]||FACES.regular)[0]),dn=dotsN();
+  return `${mode==='daily'?'Type-Putt #'+num:'Type-Putt practice'} · ${f} | Word: ${row} | Hole: ${sunk?finalScore():'X'} (Par ${holePar}) ⛳${dn?' '+'🔴'.repeat(dn):''}`}
 function finishDay(){if(mode!=='daily')return;const st=store.get('tp-stats')||{played:0,solved:0,streak:0,max:0,last:0,hio:0,strokes:0,dist:{}};
   if(st.done===num)return;st.done=num;st.played++;if(guesses.includes(answer))st.solved++;st.strokes+=strokes;if(sunk&&strokes===1)st.hio++;
   const d=sunk?Math.max(-2,Math.min(3,vsPar())):'x';st.dist[d]=(st.dist[d]||0)+1;
@@ -403,8 +493,9 @@ function finishDay(){if(mode!=='daily')return;const st=store.get('tp-stats')||{p
 function result(restored){
   const txt=shareText(),m=$('modal');
   m.innerHTML=`<div class="card mcard"><div class="cap"><span>${mode==='daily'?'HOLE #'+num:'PRACTICE'}${restored?' · TODAY':''}</span><b>SCORECARD</b></div><div class="mb">
-  <div class="kicker">THE WORD WAS ${answer.toUpperCase()}</div><h2>${gradeName()}</h2>
-  <div class="stats"><div><b>${sunk?strokes:'10+'}</b><small>STROKES</small></div><div><b>${parFor(states)}</b><small>PAR</small></div><div><b>${guesses.includes(answer)?guesses.length+'/3':'✗'}</b><small>WORD</small></div></div>
+  <div class="kicker">THE WORD WAS ${answer.toUpperCase()} · SET IN ${(FACES[course.style]||FACES.regular)[0]}</div><h2>${gradeName()}</h2>
+  <div class="stats"><div><b>${sunk?finalScore():'10+'}</b><small>SCORE</small></div><div><b>${holePar}</b><small>PAR</small></div><div><b>${guesses.includes(answer)?guesses.length+'/3':'✗'}</b><small>WORD</small></div></div>
+  <div class="kicker" style="text-align:center;margin:-4px 0 12px">${strokes} STROKE${strokes===1?'':'S'}${dotsN()?` − ${dotsN()} INK DOT${dotsN()>1?'S':''}`:''}${inked?` · INKED ×${inked}`:''}${kern.some(Boolean)?' · KERNED':''}</div>
   <div class="share">${esc(txt)}</div>
   <div class="mrow"><button class="cta" id="share">SHARE ↗</button><button class="ghost" id="again">${mode==='daily'?'PRACTICE ∞':'NEW WORD'}</button></div>
   ${mode==='daily'?'<div class="nextp">NEXT HOLE IN <b class="cd">--:--:--</b></div>':''}
@@ -426,14 +517,16 @@ function statsModal(){
   <div style="margin-top:12px"><button class="cta" id="mclose">CLOSE</button></div></div></div>`;
   m.hidden=false;tickCd();$('mclose').onclick=()=>{m.hidden=true};
 }
-function computeFrom(rec){if(!rec.sunk)return'x';return String(Math.max(-2,Math.min(3,rec.strokes-(rec.par||3))))}
+function computeFrom(rec){if(!rec.sunk)return'x';return String(Math.max(-2,Math.min(3,(rec.score||rec.strokes)-(rec.par||3))))}
 function howTo(){
   const m=$('modal');
   m.innerHTML=`<div class="card mcard"><div class="cap"><span>HOW TO PLAY</span><b>README</b></div><div class="mb"><h2>Guess it. Putt it.</h2>
   <ol class="steps"><li><span><b>Guess today's five-letter word</b> in 3 tries. Each guess colours its letters: <i class="sw" style="background:var(--green)"></i> right spot, <i class="sw" style="background:var(--ochre)"></i> wrong spot, <i class="sw" style="background:var(--grey)"></i> not in the word.</span></li>
-  <li><span>The word is laid out on the green as <b>a mini-golf hole</b>, between the tee and the cup. Letters you got in the right spot are <b>raised wooden walls</b> you can bank off. Letters in the wrong spot are <b>brittle</b>: a wall for one hit, then they crumble into ink. Letters you missed are <b>cut out as ink pits</b>.</span></li>
-  <li><span><b>Drag back anywhere to aim</b> and set power, then let go. The ball rolls and slows down, and it only drops if it reaches the cup <b>slowly</b>. Too fast and it lips out.</span></li>
-  <li><span>Roll into ink and it's <b>+1 stroke</b>, back to your last spot. Par is worked out for your exact course. One hole a day.</span></li></ol>
+  <li><span>The word becomes <b>a mini-golf hole</b>. Right-spot letters are <b>raised wooden walls</b> to bank off, and right-spot vowels are <b>rubber</b> <i class="sw" style="background:var(--red)"></i> that kicks the ball back hard. Wrong-spot letters are <b>brittle</b>: one hit, then they crumble into ink. Missed letters are <b>ink pits</b> (+1 stroke, back to your last spot).</span></li>
+  <li><span><b>Kern first.</b> Before your first putt you can slide any solid letter a little sideways to open a gap or line up a bank.</span></li>
+  <li><span><b>Drag back anywhere to aim</b> and set power, then let go. The cup is tucked into a letter, and the ball only drops if it arrives <b>slowly</b>. The paper is <b>warped</b>: shading and arrows show the slopes, and putts bend downhill.</span></li>
+  <li><span>Roll over a red <b>ink dot</b> for <b>−1 stroke</b> (two per hole). Par is worked out for your exact course.</span></li>
+  <li><span><b>A new typeface every day:</b> roman Monday, italic Tuesday and Friday, stencil Wednesday, bold Thursday and Saturday, bold italic Sunday.</span></li></ol>
   <button class="cta" id="mclose">LET'S PUTT</button></div></div>`;
   m.hidden=false;$('mclose').onclick=()=>{m.hidden=true;store.set('tp-howto',1)};
 }
@@ -445,10 +538,10 @@ async function share(text){
   const b=$('share');try{await navigator.clipboard.writeText(text);if(b)b.textContent='COPIED ✓'}catch(e){if(b)b.textContent='COPY FAILED'}setTimeout(()=>{if($('share'))$('share').textContent='SHARE ↗'},1600)}
 
 /* ---------- flow ---------- */
-function resetRound(){guesses=[];cur='';states=null;course=null;strokes=0;inked=0;ball=null;lastRest=null;broken=[false,false,false,false,false];done=false;sunk=false;flagT=0}
+function resetRound(){guesses=[];cur='';states=null;course=null;course0=null;lay=null;strokes=0;inked=0;ball=null;lastRest=null;broken=[false,false,false,false,false];kern=[0,0,0,0,0];dotsGot=[];done=false;sunk=false;flagT=0;kd=null;aim=null;sim=null}
 function playDaily(){
   mode='daily';answer=dailyAnswer;resetRound();const rec=store.get(dayKey);
-  if(rec){guesses=rec.guesses||[];strokes=rec.strokes||0;inked=rec.inked||0;ball=rec.ball;lastRest=rec.lastRest;broken=rec.broken||broken;done=!!rec.done;sunk=!!rec.sunk}
+  if(rec){guesses=rec.guesses||[];strokes=rec.strokes||0;inked=rec.inked||0;ball=rec.ball;lastRest=rec.lastRest;broken=rec.broken||broken;kern=rec.kern||kern;dotsGot=rec.dotsGot||[];done=!!rec.done;sunk=!!rec.sunk}
   buildWord();show('word');guesses.forEach((g,r)=>paintRow(r,g,false));$('guessCt').textContent=`GUESS ${Math.min(3,guesses.length+1)}/3`;
   if(guesses.includes(answer)||guesses.length>=3){finishWord();if(rec&&rec.stage==='hole')startHole(false)}
   else if(!store.get('tp-howto'))howTo();
@@ -464,10 +557,15 @@ const setMute=()=>{$('mute').textContent=muted?'🔇':'🔊'};setMute();
 $('mute').onclick=()=>{muted=!muted;setMute();try{localStorage.setItem('tp-muted',muted?'1':'0')}catch(e){}};
 $('modal').addEventListener('click',e=>{if(e.target.id==='modal')$('modal').hidden=true});
 home();
-const q=new URLSearchParams(location.search).get('word');
+// test hooks: ?word=abcde (&style=italic|bold|stencil|bolditalic for words without a green), ?day=N (hole N, unranked)
+const qs=new URLSearchParams(location.search),q=qs.get('word'),qd=parseInt(qs.get('day'),10);
+if(P.STYLES[qs.get('style')])styleOverride=qs.get('style');
 if(q&&/^[a-z]{5}$/.test(q)){store.set('tp-howto',1);mode='practice';resetRound();answer=q;buildWord();show('word');$('wordSub').textContent='test word'}
+else if(qd>0&&ANSWERS.length){store.set('tp-howto',1);mode='practice';resetRound();answer=ANSWERS[(qd-1)%ANSWERS.length];buildWord();show('word');$('wordSub').textContent=`hole #${qd} · unranked`}
 requestAnimationFrame(tick);
-window.__tp={get answer(){return answer},get course(){return course},get ball(){return ball},get strokes(){return strokes},get done(){return done},get sunk(){return sunk},get scale(){return scale},shot:(vx,vy)=>{if(sim||done)return;strokes++;$('strokes').textContent=strokes;sim=P.start(course,ball.x,ball.y,vx,vy,broken)}};
+window.__tp={get answer(){return answer},get course(){return course},get ball(){return ball},get strokes(){return strokes},get done(){return done},get sunk(){return sunk},get scale(){return scale},get par(){return holePar},get dots(){return dotsGot.slice()},get kern(){return kern.slice()},get states(){return states},get busy(){return !!sim},
+  score:()=>finalScore(),setKern:(li,v)=>{if(canKern()&&states[li]==='solid'){slideKern(li,v);save()}return kern[li]},
+  shot:(vx,vy)=>{if(sim||done)return;strokes++;$('strokes').textContent=strokes;hint();sim=P.start(course,ball.x,ball.y,vx,vy,broken,dotsGot)}};
 })();
 </script>
 </body>
